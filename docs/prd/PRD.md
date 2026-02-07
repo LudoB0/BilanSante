@@ -1,0 +1,383 @@
+# PRD – Outil de Bilan de Santé Prévention (V1)
+
+Date : 07/02/2026 Version : V1 (alignée sur le schéma de fonctionnement étape par étape)
+
+---
+
+## 1. Objectif du produit
+
+L’outil a pour objectif de permettre à un pharmacien d’officine de **générer automatiquement un document de bilan de santé prévention**, clair, structuré et directement exploitable, à partir :
+
+- d’un **questionnaire préalable renseigné par le patient sur tablette**,
+    
+- d’un **entretien officinal conduit par le pharmacien**, enregistré ou saisi sous forme textuelle,
+    
+- d’un **processus de génération assistée par IA**, strictement encadré et validé par le pharmacien.
+    
+
+L’application suit un **schéma de fonctionnement séquentiel**, garantissant :
+
+- la maîtrise humaine à chaque étape,
+    
+- la traçabilité des informations,
+    
+- l’absence totale d’informations inventées,
+    
+- un stockage **local et temporaire** des données patient.
+    
+
+---
+
+## 2. Utilisateur cible
+
+- Pharmacien d’officine
+    
+- Niveau technique : faible à intermédiaire
+    
+- Contraintes majeures :
+    
+    - temps limité par entretien (≈ 15–20 minutes),
+        
+    - responsabilité professionnelle engagée,
+        
+    - besoin de fiabilité, de lisibilité et de conformité.
+        
+
+Le pharmacien **reste décisionnaire et valideur final** du document remis au patient.
+
+---
+
+## 3. Schéma de fonctionnement global (étape par étape)
+
+Le fonctionnement de l’application est organisé en **9 étapes successives**, exécutées dans un ordre strict.
+
+### Étape 1 — Paramétrage initial de l’application
+
+- Configuration de l’identité de la pharmacie (logo, coordonnées, en‑tête/pied de page).
+    
+- Choix du fournisseur d’IA. Avec intégration d'une clé API obligatoire
+    
+- Paramétrage réalisé une seule fois, modifiable à tout moment.
+    
+
+Aucune donnée patient n’est impliquée à ce stade.
+
+---
+
+### Étape 2 — Création des questionnaires par tranche d’âge
+
+- Le pharmacien crée ou édite des questionnaires de prévention, chacun associé à une tranche d’âge.
+    
+- Les questionnaires sont composés de questions structurées (choix simples, multiples, texte court).
+    
+- Les questionnaires ne produisent aucune interprétation automatique.
+    
+
+---
+
+### Étape 3 — Initialisation d’une session d’entretien (PC officine)
+
+- Le pharmacien sélectionne la tranche d’âge du patient.
+    
+- L’application crée une **session unique** identifiée par un ID.
+    
+- Cette session sert de lien entre questionnaire, entretien et génération du bilan.
+    
+- **Il n’existe aucune durée de session prédéfinie** : la session reste active tant que l’entretien n’est pas validé et que les documents ne sont pas générés.
+    
+
+Aucune donnée nominative n’est requise pour créer une session.
+
+---
+
+### Étape 4 — Mise à disposition du questionnaire sur tablette
+
+- L’application génère un **QRCode de session**.
+    
+- Le patient scanne le QRCode sur la tablette dédiée.
+    
+- La tablette charge automatiquement le **bon questionnaire**, associé à la session en cours.
+    
+
+Le questionnaire est accessible sans compte et isolé par session.
+
+---
+
+### Étape 5 — Remplissage du questionnaire par le patient
+
+- Le patient complète le questionnaire de manière autonome (ou accompagné si nécessaire).
+    
+- Les réponses sont enregistrées localement et liées à l’ID de session.
+    
+- Aucune analyse ni interprétation n’est réalisée à ce stade.
+    
+
+---
+
+### Étape 6 — Entretien officinal guidé
+
+- Le pharmacien conduit l’entretien en s’appuyant sur les réponses du questionnaire.
+    
+- L’entretien peut être :
+    
+    - enregistré sous forme audio (avec consentement explicite),
+        
+    - saisi sous forme de notes textuelles,
+        
+    - ou une combinaison des deux.
+        
+
+Les métadonnées de l’entretien (date, durée, mode de recueil) sont automatiquement associées à la session.
+
+---
+
+### Étape 7 — Transcription et validation du contenu de l’entretien
+
+- Si un enregistrement audio existe, il est transcrit automatiquement.
+    
+- Le pharmacien relit, corrige et **valide le transcript**, qui devient la **source de vérité unique**.
+    
+- Une fois le transcript validé, l’audio peut être supprimé automatiquement selon la politique définie.
+    
+
+---
+
+### Étape 8 — Génération du bilan et du plan d’actions
+
+- L’IA génère un brouillon de bilan structuré à partir :
+    
+    - du transcript validé (obligatoire),
+        
+    - des réponses au questionnaire (contexte uniquement).
+        
+- Chaque information et chaque action proposée sont explicitement traçables au transcript.
+    
+- Les informations absentes ou ambiguës sont signalées sans être complétées.
+    
+
+---
+
+### Étape 9 — Validation finale et export des documents
+
+- Le pharmacien relit, ajuste et valide le document final.
+    
+- L’application génère :
+    
+    - un document DOCX modifiable,
+        
+    - un PDF destiné à l’impression et/ou à l’export.
+        
+
+Les documents intègrent automatiquement l’identité graphique de la pharmacie.
+
+**Une fois les documents générés et validés, la session est automatiquement clôturée et l’ensemble des données associées à la session est supprimé** (questionnaire, transcript, métadonnées, et audio le cas échéant).
+
+---
+
+## 4. Données d’entrée du système
+
+Les données d’entrée correspondent exclusivement aux informations collectées au cours d’une **session unique et éphémère**, nécessaires au fonctionnement de l’application.
+
+### 4.1 Tranche d’âge du patient
+
+- **Description** : tranche d’âge utilisée comme clé de sélection du questionnaire.
+    
+- **Format** : valeur catégorielle prédéfinie.
+    
+    - Exemple : `18–25`, `26–45`, `46–65`, `65+`
+        
+- **Source** : sélection par le pharmacien lors de l’initialisation de la session.
+    
+
+### 4.2 Réponses structurées au questionnaire
+
+- **Description** : réponses déclaratives saisies par le patient sur tablette.
+    
+- **Format** : données structurées (clé / valeur).
+    
+    - Types possibles :
+        
+        - booléen (oui / non),
+            
+        - choix unique,
+            
+        - choix multiple (liste),
+            
+        - texte court libre.
+            
+- **Structure** :
+    
+    - identifiant de question,
+        
+    - type de question,
+        
+    - valeur saisie,
+        
+    - horodatage.
+        
+- **Rôle** : support contextuel pour la lecture de l’entretien, sans valeur décisionnelle autonome.
+    
+
+### 4.3 Transcript validé de l’entretien officinal
+
+- **Description** : retranscription textuelle fidèle de l’échange entre le pharmacien et le patient.
+    
+- **Format** : texte structuré, relisible et éditable.
+    
+    - Optionnellement segmenté (paragraphes ou blocs horodatés).
+        
+- **Source** :
+    
+    - transcription automatique d’un enregistrement audio,
+        
+    - et/ou saisie manuelle du pharmacien.
+        
+- **Règle clé** :
+    
+    - le transcript validé constitue la **source de vérité unique** pour toute génération IA.
+        
+
+### 4.4 Métadonnées de session et d’entretien
+
+- **Description** : informations techniques et contextuelles liées à la session.
+    
+- **Format** : données structurées.
+    
+    - identifiant de session,
+        
+    - date et heure de création de la session,
+        
+    - date de validation de l’entretien,
+        
+    - durée approximative de l’entretien (en minutes),
+        
+    - mode de recueil (audio, texte, mixte).
+        
+- **Rôle** : traçabilité et contexte, sans impact décisionnel.
+    
+
+### 4.5 Statut de consentement
+
+- **Description** : information relative à l’accord du patient pour l’enregistrement audio.
+    
+- **Format** :
+    
+    - booléen (oui / non),
+        
+    - horodatage du recueil du consentement.
+        
+- **Règle** :
+    
+    - conditionne uniquement l’activation de l’enregistrement audio,
+        
+    - n’influence ni l’analyse ni les actions proposées.
+        
+
+Aucune donnée externe, aucun historique patient et aucune supposition ne sont utilisés par le système.
+
+---
+
+## 5. Sorties attendues
+
+### 5.1 Bilan de santé prévention
+
+- **Description** : document de synthèse destiné au patient, récapitulant le contexte de l’entretien et les points clés abordés.
+    
+- **Format logique** : texte structuré en sections.
+    
+    - Contexte de l’entretien
+        
+    - Synthèse des réponses
+        
+    - Points de vigilance identifiés
+        
+- **Caractéristiques** :
+    
+    - phrases courtes,
+        
+    - vocabulaire compréhensible par le patient,
+        
+    - aucune information non exprimée lors de l’entretien.
+        
+
+### 5.2 Plan d’actions personnalisées
+
+- **Description** : liste d’actions de prévention proposées à l’issue de l’entretien.
+    
+- **Format logique** : données structurées.
+    
+    - intitulé de l’action,
+        
+    - justification issue du transcript,
+        
+    - niveau de priorité (faible / moyenne / élevée),
+        
+    - proposition de suivi,
+        
+    - élément de traçabilité (extrait ou repère du transcript).
+        
+- **Règle** : aucune action ne peut exister sans justification explicite.
+    
+
+### 5.3 Documents générés
+
+- **DOCX** :
+    
+    - document modifiable,
+        
+    - structure standardisée conforme au bilan,
+        
+    - intégration automatique de l’identité graphique de la pharmacie,
+        
+    - destiné à la relecture, l’ajustement et l’archivage local si besoin.
+        
+- **PDF** :
+    
+    - document figé,
+        
+    - prêt à l’impression pour remise au patient,
+        
+    - utilisable pour export ou transmission manuelle (ex. LGO).
+        
+
+Les documents sont générés uniquement après validation explicite du pharmacien.
+
+---
+
+## 6. Contraintes fonctionnelles majeures
+
+- Aucune information ne doit être inventée.
+    
+- Aucune action sans justification explicite dans le transcript.
+    
+- Le pharmacien valide systématiquement avant export.
+    
+- Données stockées localement et de façon temporaire.
+    
+- **Aucune durée de conservation par défaut** : les données d’une session sont supprimées automatiquement dès que l’entretien est validé et que les documents finaux ont été générés.
+    
+
+---
+
+## 7. Hors périmètre
+
+- Diagnostic médical.
+    
+- Prescription.
+    
+- Décision clinique.
+    
+- Interprétation médicale avancée.
+    
+
+---
+
+## 8. Critères de succès (V1)
+
+- Gain de temps perçu par le pharmacien.
+    
+- Document compréhensible sans reformulation.
+    
+- Traçabilité explicite des actions.
+    
+- Absence d’hallucinations ou de contenus inventés.

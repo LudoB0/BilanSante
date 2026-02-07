@@ -1,0 +1,155 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Bilan de sante prevention",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "meta",
+    "contexte_entretien",
+    "synthese_reponses",
+    "points_vigilance",
+    "actions"
+  ],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "date_entretien",
+        "duree_minutes",
+        "mode_recueil",
+        "consentement_audio",
+        "consentement_horodatage"
+      ],
+      "properties": {
+        "date_entretien": {
+          "oneOf": [
+            { "type": "string", "format": "date" },
+            { "const": "non_renseigne" },
+            { "const": "inconnu" }
+          ]
+        },
+        "duree_minutes": {
+          "oneOf": [
+            { "type": "integer", "minimum": 0 },
+            { "const": "non_renseigne" },
+            { "const": "inconnu" }
+          ]
+        },
+        "mode_recueil": {
+          "type": "string",
+          "enum": ["audio", "texte", "mixte", "non_renseigne", "inconnu"]
+        },
+        "consentement_audio": {
+          "type": "string",
+          "enum": ["oui", "non", "non_renseigne", "inconnu"]
+        },
+        "consentement_horodatage": {
+          "oneOf": [
+            { "type": "string", "format": "date-time" },
+            { "const": "non_renseigne" },
+            { "const": "inconnu" }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "mode_recueil": { "enum": ["audio", "mixte"] } } },
+          "then": { "properties": { "consentement_audio": { "enum": ["oui"] } } }
+        }
+      ]
+    },
+    "contexte_entretien": { "$ref": "#/$defs/section" },
+    "synthese_reponses": { "$ref": "#/$defs/section" },
+    "points_vigilance": { "$ref": "#/$defs/section" },
+    "actions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/action" },
+      "minItems": 0
+    }
+  },
+  "$defs": {
+    "trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transcript_ref"],
+      "properties": {
+        "transcript_ref": { "type": "string", "minLength": 1 },
+        "transcript_excerpt": { "type": "string", "minLength": 1 },
+        "segment_id": { "type": "string", "minLength": 1 }
+      },
+      "anyOf": [
+        { "required": ["transcript_excerpt"] },
+        { "required": ["segment_id"] }
+      ]
+    },
+    "text_field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["statut", "contenu"],
+      "properties": {
+        "statut": { "type": "string", "enum": ["renseigne", "non_renseigne", "inconnu"] },
+        "contenu": { "type": ["string", "null"] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "statut": { "const": "renseigne" } } },
+          "then": { "properties": { "contenu": { "type": "string", "minLength": 1 } } }
+        },
+        {
+          "if": { "properties": { "statut": { "enum": ["non_renseigne", "inconnu"] } } },
+          "then": { "properties": { "contenu": { "type": "null" } } }
+        }
+      ]
+    },
+    "section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["statut", "contenu", "traceability"],
+      "properties": {
+        "statut": { "type": "string", "enum": ["renseigne", "non_renseigne", "inconnu"] },
+        "contenu": { "type": ["string", "null"] },
+        "traceability": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/trace" },
+          "minItems": 0
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "statut": { "const": "renseigne" } } },
+          "then": {
+            "properties": {
+              "contenu": { "type": "string", "minLength": 1 },
+              "traceability": { "minItems": 1 }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "statut": { "enum": ["non_renseigne", "inconnu"] } } },
+          "then": {
+            "properties": {
+              "contenu": { "type": "null" },
+              "traceability": { "maxItems": 0 }
+            }
+          }
+        }
+      ]
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["intitule", "priorite", "proposition_suivi", "justifications"],
+      "properties": {
+        "intitule": { "type": "string", "minLength": 1 },
+        "priorite": { "type": "string", "enum": ["faible", "moyenne", "elevee"] },
+        "proposition_suivi": { "$ref": "#/$defs/text_field" },
+        "justifications": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/trace" },
+          "minItems": 1
+        }
+      }
+    }
+  }
+}
