@@ -1,0 +1,127 @@
+{
+  "age_range": "45-50",
+  "version": 1,
+  "created_at": "2026-02-09T19:08:03",
+  "updated_at": "2026-02-09T19:17:02",
+  "questions": [
+    {
+      "id": "q1",
+      "order": 0,
+      "type": "single_choice",
+      "label": "Vous êtes",
+      "required": true,
+      "options": [
+        "Un homme",
+        "Une femme"
+      ],
+      "scale_config": null
+    },
+    {
+      "id": "q2",
+      "order": 1,
+      "type": "single_choice",
+      "label": "Quel âge avez vous ?",
+      "required": true,
+      "options": [
+        "45 ans",
+        "46 ans",
+        "47 ans",
+        "48 ans",
+        "49 ans",
+        "50 ans"
+      ],
+      "scale_config": null
+    },
+    {
+      "id": "q3",
+      "order": 2,
+      "type": "boolean",
+      "label": "Avez vous un ou plusieurs enfants à la maison",
+      "required": true,
+      "options": [],
+      "scale_config": null
+    },
+    {
+      "id": "q4",
+      "order": 3,
+      "type": "boolean",
+      "label": "Si oui, vous en occupez-vous seul(e)",
+      "required": true,
+      "options": [],
+      "scale_config": null
+    },
+    {
+      "id": "q5",
+      "order": 4,
+      "type": "boolean",
+      "label": "Assumez-vous un rôle d'aidant ? Aidez-vous une personne de manière régulière et fréquente, en raison de son âge, de la maladie ou d'une situation de handicap ? ",
+      "required": true,
+      "options": [],
+      "scale_config": null
+    },
+    {
+      "id": "q6",
+      "order": 5,
+      "type": "boolean",
+      "label": "En cas de besoin, pouvez-vous compter sur une personne de votre entourage ? ",
+      "required": true,
+      "options": [],
+      "scale_config": null
+    },
+    {
+      "id": "q7",
+      "order": 6,
+      "type": "boolean",
+      "label": "Vos conditions de vie et/ou de travail sont-elles difficiles ou pénibles ? ",
+      "required": true,
+      "options": [],
+      "scale_config": null
+    },
+    {
+      "id": "q8",
+      "order": 7,
+      "type": "multiple_choice",
+      "label": "Avez-vous une de ces maladies ? ",
+      "required": true,
+      "options": [
+        "Aucune",
+        "\nHypertension artérielle, diabète, cholestérol",
+        "Maladies cardiovasculaires (infarctus, maladie coronaire, insuffisance cardiaque, AVC...)",
+        "Cancers",
+        "Maladies respiratoires (asthme, bronchite chronique, BPCO...)",
+        "Maladie inflammatoire chronique de l'intestin (maladie de Crohn, rectocolite hémorragique)"
+      ],
+      "scale_config": null
+    },
+    {
+      "id": "q9",
+      "order": 8,
+      "type": "short_text",
+      "label": "Pouvez-vous apporter des précisions",
+      "required": true,
+      "options": [],
+      "scale_config": null
+    },
+    {
+      "id": "q10",
+      "order": 9,
+      "type": "single_choice",
+      "label": "A quand remonte votre dernière prise de sang et/ou analyse d'urine ?",
+      "required": true,
+      "options": [
+        "Moins de 6 mois",
+        "Plus de 6 mois"
+      ],
+      "scale_config": null
+    },
+    {
+      "id": "q11",
+      "order": 10,
+      "type": "short_text",
+      "label": "Des personnes de votre famille proche (mère, père, soeur ou frère) sont ou ont été atteintes de maladies ? \nDiabète, hypertension artérielle, cancer, infarctus, mort subite, hypercholestérolémie, fracture du col du fémur...",
+      "required": true,
+      "options": [],
+      "scale_config": null
+    }
+  ]
+}

@@ -39,9 +39,8 @@ Lister uniquement les donnees explicitement decrites dans le PRD.
 | Etat de validation et generation des documents | texte | Oui | Etat de validation et generation des documents |
 
 ### 3.2 Regles de priorite des entrees
-- Le transcript de l'entretien officinal est la source de verite principale.
-- Les reponses au questionnaire sont utilisees uniquement comme contexte.
-- Les donnees de consentement et de metadonnees n'ont aucun role decisionnel.
+- L'identifiant de session et l'etat de generation des documents sont les seules entrees.
+- La purge est conditionnee a la creation des 4 documents attendus.
 
 Aucune autre source de donnees n'est autorisee.
 
@@ -50,18 +49,17 @@ Aucune autre source de donnees n'est autorisee.
 ## 4. Pre-conditions d'execution
 Le skill ne doit pas s'executer si :
 - La session n'est pas active.
+- Tous les documents attendus ne sont pas crees (`BDS_*.docx`, `PAC_*.docx`, `BDS_*.pdf`, `PAC_*.pdf`).
 - Les entrees principales ne sont pas disponibles.
 
 ---
 
 ## 5. Regles IA strictes (conformes PRD)
 
-- Aucune information ne doit etre inventee.
-- Aucune action ne peut etre proposee sans justification explicite issue du transcript.
-- Toute information absente ou ambigue doit etre signalee explicitement.
-- Aucune interpretation medicale, diagnostic ou prescription.
-- Le langage doit etre professionnel, clair pour le patient et adapte au contexte officinal.
-- Le pharmacien reste maitre du contenu final.
+- La suppression est automatique des que les 4 documents attendus sont generes et valides.
+- Aucune duree de conservation par defaut.
+- La purge couvre : questionnaire, transcript, metadonnees et audio.
+- En cas d'echec d'un document, la session reste active pour relance. Pas de purge.
 
 Ces regles sont imperatives et prioritaires.
 
@@ -85,7 +83,7 @@ Etapes logiques :
 
 ### 7.2 Schema de sortie
 - Conformite de la suppression (donnees locales et temporaires)
-- Format exact non specifie dans le PRD.
+- Suppression globale en fin d'etape 9 : questionnaire, transcript, metadonnees et audio.
 
 ---
 
@@ -94,19 +92,18 @@ Etapes logiques :
 | Situation | Comportement attendu |
 |---------|----------------------|
 | Suppression prematuree avant generation des documents. | Signalement explicite sans extrapolation |
-| **DEPRECATED** `ConfigureBilanSections`  la selection/organisation des rubriques nest plus decrite dans le PRD. | Signalement explicite sans extrapolation |
-| **DEPRECATED** `CaptureInterviewTranscript`  remplace par `RecordInterviewAudio`, `CaptureInterviewTextNotes`, `TranscribeAudioToTranscript`, `ValidateTranscript`. | Signalement explicite sans extrapolation |
-| **DEPRECATED** `GenerateOfficinalAdvice`  la section  conseils officinaux  nest plus dans les sorties PRD. | Signalement explicite sans extrapolation |
+| Echec de generation d'un document attendu | Pas de purge; document concerne non cree |
+| Validation finale non realisee | Pas de purge |
+| Entree obligatoire absente | Blocage |
 
 ---
 
 ## 9. Criteres d'acceptation
 
 Le skill est conforme si :
-- Toutes les informations presentes sont tracables au transcript.
-- Aucune donnee non exprimee n'apparait.
-- Le format de sortie est strictement respecte.
-- Le contenu est comprehensible par un patient sans reformulation.
+- Toutes les donnees de session sont supprimees (questionnaire, transcript, metadonnees, audio).
+- La suppression n'intervient que si les 4 documents attendus sont crees.
+- Aucune donnee de session ne persiste apres purge.
 
 Un seul critere non respecte rend le skill non conforme.
 
@@ -115,8 +112,9 @@ Un seul critere non respecte rend le skill non conforme.
 ## 10. Post-conditions
 
 Apres execution :
-- Les donnees produites sont pretes a etre relues, modifiees et validees par le pharmacien.
-- Aucune persistance automatique de donnees apres validation finale de la session.
+- Toutes les donnees de la session sont supprimees.
+- Seuls les documents finaux dans output/ subsistent.
+- Les donnees de parametrage dans config/ ne sont pas affectees.
 
 ---
 

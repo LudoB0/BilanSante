@@ -1,3 +1,4 @@
-﻿# Prompts
+# packages/prompts
 
-TODO: Décrire ce dossier.
+Role : artefacts prompts contractuels deja derives du PRD.
+Ce dossier ne definit aucune logique applicative.

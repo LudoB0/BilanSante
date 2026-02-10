@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -Command:*)",
+      "Bash(powershell:*)",
+      "Bash(dir:*)",
+      "Bash(ls -la \"d:\\\\DEV\\\\BilanSante\\\\config\"\" 2>/dev/null || dir \"d:DEVBilanSanteconfig \")"
+    ]
+  }
+}

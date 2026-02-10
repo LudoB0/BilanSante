@@ -35,14 +35,13 @@ Lister uniquement les donnees explicitement decrites dans le PRD.
 
 | Champ | Type | Obligatoire | Description |
 |------|------|------------|-------------|
-| Identite de la pharmacie (logo, coordonnees, en-tete/pied de page) | texte | Oui | Identite de la pharmacie (logo, coordonnees, en-tete/pied de page) |
+| Identite de la pharmacie | texte | Oui | Identite de la pharmacie (logo, coordonnees, en-tete/pied de page) |
 | Choix du fournisseur IA | non specifie | Oui | Choix du fournisseur IA |
 | Cle API obligatoire | non specifie | Oui | Cle API obligatoire |
 
 ### 3.2 Regles de priorite des entrees
-- Le transcript de l'entretien officinal est la source de verite principale.
-- Les reponses au questionnaire sont utilisees uniquement comme contexte.
-- Les donnees de consentement et de metadonnees n'ont aucun role decisionnel.
+- Les entrees de parametrage sont independantes des sessions patient.
+- Aucune donnee patient n'est impliquee.
 
 Aucune autre source de donnees n'est autorisee.
 
@@ -57,12 +56,10 @@ Le skill ne doit pas s'executer si :
 
 ## 5. Regles IA strictes (conformes PRD)
 
-- Aucune information ne doit etre inventee.
-- Aucune action ne peut etre proposee sans justification explicite issue du transcript.
-- Toute information absente ou ambigue doit etre signalee explicitement.
-- Aucune interpretation medicale, diagnostic ou prescription.
-- Le langage doit etre professionnel, clair pour le patient et adapte au contexte officinal.
-- Le pharmacien reste maitre du contenu final.
+- Aucune donnee patient ne doit etre manipulee.
+- La cle API est obligatoire pour valider le parametrage.
+- Le parametrage est modifiable a tout moment.
+- Les donnees de parametrage sont persistantes et independantes des sessions.
 
 Ces regles sont imperatives et prioritaires.
 
@@ -82,11 +79,11 @@ Etapes logiques :
 ## 7. Sorties attendues
 
 ### 7.1 Type de sortie
-- Autre (a preciser) : documents DOCX/PDF
+- Autre (a preciser) : donnees de parametrage applicatif
 
 ### 7.2 Schema de sortie
-- Documents DOCX/PDF generes avec identite graphique de la pharmacie
-- Format exact non specifie dans le PRD.
+- Donnees de parametrage applicatif enregistrees (identite pharmacie, informations de contact, fournisseur IA, cle API).
+- Stockage persistant dans config/.
 
 ---
 
@@ -97,17 +94,15 @@ Etapes logiques :
 | Cle API manquante ou invalide. | Signalement explicite sans extrapolation |
 | Entree obligatoire absente | Blocage |
 | Information contradictoire | Signalement sans arbitrage |
-| Transcript vide ou trop court | Sortie minimale sans extrapolation |
 
 ---
 
 ## 9. Criteres d'acceptation
 
 Le skill est conforme si :
-- Toutes les informations presentes sont tracables au transcript.
-- Aucune donnee non exprimee n'apparait.
-- Le format de sortie est strictement respecte.
-- Le contenu est comprehensible par un patient sans reformulation.
+- Toutes les donnees de parametrage obligatoires sont presentes.
+- La cle API est valide.
+- Le parametrage est enregistre et accessible par les modules de generation documentaire.
 
 Un seul critere non respecte rend le skill non conforme.
 
@@ -116,8 +111,9 @@ Un seul critere non respecte rend le skill non conforme.
 ## 10. Post-conditions
 
 Apres execution :
-- Les donnees produites sont pretes a etre relues, modifiees et validees par le pharmacien.
-- Aucune persistance automatique de donnees apres validation finale de la session.
+- Les donnees de parametrage sont enregistrees de facon persistante dans config/.
+- Le parametrage est accessible par les modules de generation documentaire.
+- Aucune donnee patient n'est creee.
 
 ---
 

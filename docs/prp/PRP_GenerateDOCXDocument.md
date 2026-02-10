@@ -39,9 +39,8 @@ Lister uniquement les donnees explicitement decrites dans le PRD.
 | Identite graphique de la pharmacie | texte | Oui | Identite graphique de la pharmacie |
 
 ### 3.2 Regles de priorite des entrees
-- Le transcript de l'entretien officinal est la source de verite principale.
-- Les reponses au questionnaire sont utilisees uniquement comme contexte.
-- Les donnees de consentement et de metadonnees n'ont aucun role decisionnel.
+- Le contenu valide par le pharmacien est la source principale.
+- L'identite graphique de la pharmacie est appliquee au document.
 
 Aucune autre source de donnees n'est autorisee.
 
@@ -56,12 +55,9 @@ Le skill ne doit pas s'executer si :
 
 ## 5. Regles IA strictes (conformes PRD)
 
-- Aucune information ne doit etre inventee.
-- Aucune action ne peut etre proposee sans justification explicite issue du transcript.
-- Toute information absente ou ambigue doit etre signalee explicitement.
-- Aucune interpretation medicale, diagnostic ou prescription.
-- Le langage doit etre professionnel, clair pour le patient et adapte au contexte officinal.
-- Le pharmacien reste maitre du contenu final.
+- Aucune information ne doit etre inventee ou ajoutee au contenu valide.
+- La structure du document est conforme au bilan.
+- L'identite graphique de la pharmacie est integree.
 
 Ces regles sont imperatives et prioritaires.
 
@@ -84,8 +80,9 @@ Etapes logiques :
 - Autre (a preciser) : document DOCX
 
 ### 7.2 Schema de sortie
-- Document DOCX
-- Format exact non specifie dans le PRD.
+- Documents DOCX attendus dans `output/` :
+- `output/BDS_<numero_session>.docx` (bilan)
+- `output/PAC_<numero_session>.docx` (plan d'actions)
 
 ---
 
@@ -93,20 +90,19 @@ Etapes logiques :
 
 | Situation | Comportement attendu |
 |---------|----------------------|
+| Echec de generation d'un DOCX attendu | Document concerne non cree |
 | DOCX non genere ou incomplet. | Signalement explicite sans extrapolation |
 | Entree obligatoire absente | Blocage |
 | Information contradictoire | Signalement sans arbitrage |
-| Transcript vide ou trop court | Sortie minimale sans extrapolation |
 
 ---
 
 ## 9. Criteres d'acceptation
 
 Le skill est conforme si :
-- Toutes les informations presentes sont tracables au transcript.
-- Aucune donnee non exprimee n'apparait.
-- Le format de sortie est strictement respecte.
-- Le contenu est comprehensible par un patient sans reformulation.
+- Les documents DOCX sont generes dans output/ avec le nommage contractuel.
+- Le contenu est identique au contenu valide par le pharmacien.
+- L'identite graphique est correctement integree.
 
 Un seul critere non respecte rend le skill non conforme.
 
@@ -115,8 +111,8 @@ Un seul critere non respecte rend le skill non conforme.
 ## 10. Post-conditions
 
 Apres execution :
-- Les donnees produites sont pretes a etre relues, modifiees et validees par le pharmacien.
-- Aucune persistance automatique de donnees apres validation finale de la session.
+- Les documents DOCX sont disponibles dans output/.
+- En cas d'echec, le document concerne est marque 'non cree'.
 
 ---
 

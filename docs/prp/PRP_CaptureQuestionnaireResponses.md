@@ -40,9 +40,8 @@ Lister uniquement les donnees explicitement decrites dans le PRD.
 | Identifiant de session | texte | Oui | Identifiant de session |
 
 ### 3.2 Regles de priorite des entrees
-- Le transcript de l'entretien officinal est la source de verite principale.
-- Les reponses au questionnaire sont utilisees uniquement comme contexte.
-- Les donnees de consentement et de metadonnees n'ont aucun role decisionnel.
+- Les reponses sont un support contextuel sans valeur decisionnelle autonome.
+- L'identifiant de session est obligatoire pour le rattachement.
 
 Aucune autre source de donnees n'est autorisee.
 
@@ -58,12 +57,9 @@ Le skill ne doit pas s'executer si :
 
 ## 5. Regles IA strictes (conformes PRD)
 
-- Aucune information ne doit etre inventee.
-- Aucune action ne peut etre proposee sans justification explicite issue du transcript.
-- Toute information absente ou ambigue doit etre signalee explicitement.
-- Aucune interpretation medicale, diagnostic ou prescription.
-- Le langage doit etre professionnel, clair pour le patient et adapte au contexte officinal.
-- Le pharmacien reste maitre du contenu final.
+- Les reponses sont enregistrees telles quelles, sans interpretation ni analyse.
+- Les donnees sont stockees localement et temporairement.
+- Aucune reecriture automatique des reponses.
 
 Ces regles sont imperatives et prioritaires.
 
@@ -83,10 +79,10 @@ Etapes logiques :
 ## 7. Sorties attendues
 
 ### 7.1 Type de sortie
-- Texte structure
+- JSON structure
 
 ### 7.2 Schema de sortie
-- Section  Synthese des reponses  du bilan
+- Reponses structurees enregistrees et liees a la session.
 
 ---
 
@@ -97,17 +93,15 @@ Etapes logiques :
 | Questionnaire incomplet ou interrompu. | Signalement explicite sans extrapolation |
 | Entree obligatoire absente | Blocage |
 | Information contradictoire | Signalement sans arbitrage |
-| Transcript vide ou trop court | Sortie minimale sans extrapolation |
 
 ---
 
 ## 9. Criteres d'acceptation
 
 Le skill est conforme si :
-- Toutes les informations presentes sont tracables au transcript.
-- Aucune donnee non exprimee n'apparait.
+- Toutes les reponses sont correctement rattachees a la session.
+- L'horodatage est present pour chaque reponse.
 - Le format de sortie est strictement respecte.
-- Le contenu est comprehensible par un patient sans reformulation.
 
 Un seul critere non respecte rend le skill non conforme.
 
@@ -116,8 +110,8 @@ Un seul critere non respecte rend le skill non conforme.
 ## 10. Post-conditions
 
 Apres execution :
-- Les donnees produites sont pretes a etre relues, modifiees et validees par le pharmacien.
-- Aucune persistance automatique de donnees apres validation finale de la session.
+- Les reponses sont enregistrees et disponibles pour les modules de construction du bilan.
+- Aucune interpretation n'a ete realisee.
 
 ---
 

@@ -39,9 +39,8 @@ Lister uniquement les donnees explicitement decrites dans le PRD.
 | Questions structurees (choix simple, choix multiple, texte court) | non specifie | Oui | Questions structurees (choix simple, choix multiple, texte court) |
 
 ### 3.2 Regles de priorite des entrees
-- Le transcript de l'entretien officinal est la source de verite principale.
-- Les reponses au questionnaire sont utilisees uniquement comme contexte.
-- Les donnees de consentement et de metadonnees n'ont aucun role decisionnel.
+- La tranche d'age est obligatoire pour associer un questionnaire.
+- Les questions structurees definissent le format de collecte.
 
 Aucune autre source de donnees n'est autorisee.
 
@@ -55,12 +54,9 @@ Le skill ne doit pas s'executer si :
 
 ## 5. Regles IA strictes (conformes PRD)
 
-- Aucune information ne doit etre inventee.
-- Aucune action ne peut etre proposee sans justification explicite issue du transcript.
-- Toute information absente ou ambigue doit etre signalee explicitement.
-- Aucune interpretation medicale, diagnostic ou prescription.
-- Le langage doit etre professionnel, clair pour le patient et adapte au contexte officinal.
-- Le pharmacien reste maitre du contenu final.
+- Aucune interpretation automatique des reponses.
+- Les questionnaires ne produisent aucune analyse.
+- Le pharmacien est maitre du contenu des questionnaires.
 
 Ces regles sont imperatives et prioritaires.
 
@@ -83,7 +79,7 @@ Etapes logiques :
 - JSON structure
 
 ### 7.2 Schema de sortie
-- Permet la collecte des reponses qui alimentent le bilan et le plan dactions
+- Questionnaire structure associe a une tranche d'age, pret a etre utilise en session.
 
 ---
 
@@ -94,17 +90,15 @@ Etapes logiques :
 | Questionnaire incomplet ou non associe a une tranche dage. | Signalement explicite sans extrapolation |
 | Entree obligatoire absente | Blocage |
 | Information contradictoire | Signalement sans arbitrage |
-| Transcript vide ou trop court | Sortie minimale sans extrapolation |
 
 ---
 
 ## 9. Criteres d'acceptation
 
 Le skill est conforme si :
-- Toutes les informations presentes sont tracables au transcript.
-- Aucune donnee non exprimee n'apparait.
+- Le questionnaire est correctement associe a une tranche d'age.
+- Toutes les questions sont structurees (choix simple, choix multiple, texte court).
 - Le format de sortie est strictement respecte.
-- Le contenu est comprehensible par un patient sans reformulation.
 
 Un seul critere non respecte rend le skill non conforme.
 
@@ -113,8 +107,8 @@ Un seul critere non respecte rend le skill non conforme.
 ## 10. Post-conditions
 
 Apres execution :
-- Les donnees produites sont pretes a etre relues, modifiees et validees par le pharmacien.
-- Aucune persistance automatique de donnees apres validation finale de la session.
+- Le questionnaire est enregistre et disponible pour utilisation en session.
+- Le pharmacien peut le modifier ou le reediter.
 
 ---
 

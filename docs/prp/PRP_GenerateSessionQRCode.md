@@ -36,11 +36,13 @@ Lister uniquement les donnees explicitement decrites dans le PRD.
 | Champ | Type | Obligatoire | Description |
 |------|------|------------|-------------|
 | Identifiant de session | texte | Oui | Identifiant de session |
+| Version du format (`v`) | entier | Oui | Version du payload QRCode (valeur attendue: `1`). |
+| Token opaque (`t`) | texte | Oui | Token non devinable associe a la session. |
+| Signature (`sig`) | texte | Oui | Signature/HMAC anti-falsification. |
 
 ### 3.2 Regles de priorite des entrees
-- Le transcript de l'entretien officinal est la source de verite principale.
-- Les reponses au questionnaire sont utilisees uniquement comme contexte.
-- Les donnees de consentement et de metadonnees n'ont aucun role decisionnel.
+- L'identifiant de session, le token et la signature sont tous obligatoires.
+- Le format du payload doit respecter le schema contractuel.
 
 Aucune autre source de donnees n'est autorisee.
 
@@ -55,12 +57,9 @@ Le skill ne doit pas s'executer si :
 
 ## 5. Regles IA strictes (conformes PRD)
 
-- Aucune information ne doit etre inventee.
-- Aucune action ne peut etre proposee sans justification explicite issue du transcript.
-- Toute information absente ou ambigue doit etre signalee explicitement.
-- Aucune interpretation medicale, diagnostic ou prescription.
-- Le langage doit etre professionnel, clair pour le patient et adapte au contexte officinal.
-- Le pharmacien reste maitre du contenu final.
+- Le payload QRCode doit etre signe (HMAC/signature) pour eviter la falsification.
+- Le token doit etre opaque et non devinable.
+- Le format du payload est strictement : bsp://session?v=1&sid=<session_id>&t=<token>&sig=<signature>.
 
 Ces regles sont imperatives et prioritaires.
 
@@ -80,10 +79,11 @@ Etapes logiques :
 ## 7. Sorties attendues
 
 ### 7.1 Type de sortie
-- JSON structure
+- Autre (a preciser) : QRCode de session
 
 ### 7.2 Schema de sortie
-- Permet la collecte des reponses pour alimenter le bilan et le plan dactions
+- Payload QRCode (string) : `bsp://session?v=1&sid=<session_id>&t=<token>&sig=<signature>`.
+- Champs du payload : `v`, `sid`, `t`, `sig`.
 
 ---
 
@@ -92,19 +92,18 @@ Etapes logiques :
 | Situation | Comportement attendu |
 |---------|----------------------|
 | QRCode invalide ou session inconnue. | Signalement explicite sans extrapolation |
+| Signature/HMAC invalide | Blocage |
+| Token opaque absent | Blocage |
 | Entree obligatoire absente | Blocage |
-| Information contradictoire | Signalement sans arbitrage |
-| Transcript vide ou trop court | Sortie minimale sans extrapolation |
 
 ---
 
 ## 9. Criteres d'acceptation
 
 Le skill est conforme si :
-- Toutes les informations presentes sont tracables au transcript.
-- Aucune donnee non exprimee n'apparait.
-- Le format de sortie est strictement respecte.
-- Le contenu est comprehensible par un patient sans reformulation.
+- Le payload QRCode respecte le format contractuel.
+- La signature est valide et verifiable.
+- Le token est opaque et non devinable.
 
 Un seul critere non respecte rend le skill non conforme.
 
@@ -113,8 +112,8 @@ Un seul critere non respecte rend le skill non conforme.
 ## 10. Post-conditions
 
 Apres execution :
-- Les donnees produites sont pretes a etre relues, modifiees et validees par le pharmacien.
-- Aucune persistance automatique de donnees apres validation finale de la session.
+- Le QRCode est genere et pret a etre affiche.
+- Le payload est verifiable par le module d'acces tablette.
 
 ---
 

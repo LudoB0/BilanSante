@@ -119,8 +119,8 @@ Un seul critere non respecte rend le skill non conforme.
 ## 10. Post-conditions
 
 Apres execution :
-- Les donnees produites sont pretes a etre relues, modifiees et validees par le pharmacien.
-- Aucune persistance automatique de donnees apres validation finale de la session.
+- Le bilan et le plan d'actions sont assembles et prets pour la validation finale par le pharmacien.
+- Aucune generation documentaire n'est encore realisee.
 
 ---
 

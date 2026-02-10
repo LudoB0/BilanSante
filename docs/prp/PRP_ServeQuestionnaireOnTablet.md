@@ -37,11 +37,11 @@ Lister uniquement les donnees explicitement decrites dans le PRD.
 |------|------|------------|-------------|
 | Identifiant de session | texte | Oui | Identifiant de session |
 | Questionnaire associe a la tranche dage | valeur categorielle | Oui | Questionnaire associe a la tranche dage |
+| Payload QRCode (`v`, `sid`, `t`, `sig`) | texte structure | Oui | Payload signe permettant de charger la session cible. |
 
 ### 3.2 Regles de priorite des entrees
-- Le transcript de l'entretien officinal est la source de verite principale.
-- Les reponses au questionnaire sont utilisees uniquement comme contexte.
-- Les donnees de consentement et de metadonnees n'ont aucun role decisionnel.
+- Le payload QRCode doit etre valide (version, token, signature) pour autoriser l'acces.
+- Le questionnaire est determine par la tranche d'age associee a la session.
 
 Aucune autre source de donnees n'est autorisee.
 
@@ -51,18 +51,16 @@ Aucune autre source de donnees n'est autorisee.
 Le skill ne doit pas s'executer si :
 - La session n'est pas active.
 - Le questionnaire correspondant n'est pas disponible.
+- Le payload QRCode est invalide (version, token ou signature).
 - Les entrees principales ne sont pas disponibles.
 
 ---
 
 ## 5. Regles IA strictes (conformes PRD)
 
-- Aucune information ne doit etre inventee.
-- Aucune action ne peut etre proposee sans justification explicite issue du transcript.
-- Toute information absente ou ambigue doit etre signalee explicitement.
-- Aucune interpretation medicale, diagnostic ou prescription.
-- Le langage doit etre professionnel, clair pour le patient et adapte au contexte officinal.
-- Le pharmacien reste maitre du contenu final.
+- L'acces au questionnaire est sans compte et isole par session.
+- Le chargement n'est autorise que si le payload QRCode est valide.
+- Aucune interpretation des reponses n'est realisee.
 
 Ces regles sont imperatives et prioritaires.
 
@@ -82,11 +80,11 @@ Etapes logiques :
 ## 7. Sorties attendues
 
 ### 7.1 Type de sortie
-- Autre (a preciser) : bilan structure
+- Autre (a preciser) : questionnaire affiche sur tablette
 
 ### 7.2 Schema de sortie
-- Permet la saisie des reponses patient pour la synthese du bilan
-- Format exact non specifie dans le PRD.
+- Questionnaire charge et accessible sur la tablette pour la session cible.
+- Le chargement est autorise uniquement si le payload respecte : `bsp://session?v=1&sid=<session_id>&t=<token>&sig=<signature>`.
 
 ---
 
@@ -95,19 +93,18 @@ Etapes logiques :
 | Situation | Comportement attendu |
 |---------|----------------------|
 | Questionnaire non disponible pour la tranche dage. | Signalement explicite sans extrapolation |
+| Signature/HMAC invalide dans le payload | Blocage |
+| Token opaque absent ou invalide | Blocage |
 | Entree obligatoire absente | Blocage |
-| Information contradictoire | Signalement sans arbitrage |
-| Transcript vide ou trop court | Sortie minimale sans extrapolation |
 
 ---
 
 ## 9. Criteres d'acceptation
 
 Le skill est conforme si :
-- Toutes les informations presentes sont tracables au transcript.
-- Aucune donnee non exprimee n'apparait.
-- Le format de sortie est strictement respecte.
-- Le contenu est comprehensible par un patient sans reformulation.
+- Le questionnaire correspond a la tranche d'age de la session.
+- Le payload QRCode a ete valide avant chargement.
+- L'acces est isole par session.
 
 Un seul critere non respecte rend le skill non conforme.
 
@@ -116,8 +113,8 @@ Un seul critere non respecte rend le skill non conforme.
 ## 10. Post-conditions
 
 Apres execution :
-- Les donnees produites sont pretes a etre relues, modifiees et validees par le pharmacien.
-- Aucune persistance automatique de donnees apres validation finale de la session.
+- Le questionnaire est affiche sur la tablette et pret a la saisie patient.
+- Les reponses seront rattachees a la session via le module de capture.
 
 ---
 

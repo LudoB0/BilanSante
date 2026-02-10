@@ -1,3 +1,4 @@
-﻿# Core
+# packages/core
 
-TODO: Décrire ce dossier.
+Role : definitions metier partagees et contraintes transverses derivees des contrats.
+Aucune logique applicative n est incluse dans ce squelette.

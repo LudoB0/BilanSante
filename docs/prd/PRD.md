@@ -53,14 +53,17 @@ Le fonctionnement de l’application est organisé en **9 étapes successives**,
 
 ### Étape 1 — Paramétrage initial de l’application
 
-- Configuration de l’identité de la pharmacie (logo, coordonnées, en‑tête/pied de page).
-    
-- Choix du fournisseur d’IA. Avec intégration d'une clé API obligatoire
-    
-- Paramétrage réalisé une seule fois, modifiable à tout moment.
-    
+- Configuration de l'identité de la pharmacie (logo, coordonnées, en‑tête/pied de page).
 
-Aucune donnée patient n’est impliquée à ce stade.
+- Informations de contact optionnelles (site web, réseaux sociaux : Instagram, Facebook, X, LinkedIn).
+
+- Choix du fournisseur d'IA. Avec intégration d'une clé API obligatoire.
+
+- Paramétrage réalisé une seule fois, modifiable à tout moment.
+
+- Les données de paramétrage sont persistantes et indépendantes des sessions patient.
+
+Aucune donnée patient n'est impliquée à ce stade.
 
 ---
 
@@ -75,24 +78,35 @@ Aucune donnée patient n’est impliquée à ce stade.
 
 ---
 
-### Étape 3 — Initialisation d’une session d’entretien (PC officine)
+### Étape 3 — Initialisation d'une session d'entretien (PC officine)
 
-- Le pharmacien sélectionne la tranche d’âge du patient.
-    
-- L’application crée une **session unique** identifiée par un ID.
-    
+- L'écran d'initialisation affiche les informations de la pharmacie issues du paramétrage (logo, nom, adresse, code postal, ville) ainsi que les liens web non vides (site web, réseaux sociaux).
+
+- Le pharmacien sélectionne la tranche d'âge du patient parmi les tranches d'âge disposant d'un questionnaire non vide.
+
+- L'application crée une **session unique** identifiée par un ID (UUID), stockée dans `data/sessions/`.
+
+- Le fichier de session contient l'identifiant, la tranche d'âge, la date/heure de création, le statut et une copie des coordonnées pharmacie (traçabilité).
+
 - Cette session sert de lien entre questionnaire, entretien et génération du bilan.
-    
-- **Il n’existe aucune durée de session prédéfinie** : la session reste active tant que l’entretien n’est pas validé et que les documents ne sont pas générés.
-    
 
-Aucune donnée nominative n’est requise pour créer une session.
+- **Il n'existe aucune durée de session prédéfinie** : la session reste active tant que l'entretien n'est pas validé et que les documents ne sont pas générés.
+
+
+Aucune donnée nominative n'est requise pour créer une session.
 
 ---
 
 ### Étape 4 — Mise à disposition du questionnaire sur tablette
 
 - L’application génère un **QRCode de session**.
+- Le payload du QRCode est un lien local/deep-link signé au format :
+  `bsp://session?v=1&sid=<session_id>&t=<token>&sig=<signature>`.
+- Champs obligatoires du payload :
+  - `v` : version du format
+  - `sid` : identifiant de session (UUID)
+  - `t` : token opaque non devinable
+  - `sig` : signature/HMAC anti-falsification
     
 - Le patient scanne le QRCode sur la tablette dédiée.
     
@@ -131,13 +145,15 @@ Les métadonnées de l’entretien (date, durée, mode de recueil) sont automati
 
 ---
 
-### Étape 7 — Transcription et validation du contenu de l’entretien
+### Étape 7 — Transcription et validation du contenu de l'entretien
 
 - Si un enregistrement audio existe, il est transcrit automatiquement.
-    
+
+- Si l'entretien a été saisi uniquement sous forme de notes textuelles, celles-ci sont converties en transcript structuré avant validation.
+
 - Le pharmacien relit, corrige et **valide le transcript**, qui devient la **source de vérité unique**.
-    
-- Une fois le transcript validé, l’audio peut être supprimé automatiquement selon la politique définie.
+
+- L'audio n'est pas supprimé à cette étape ; la suppression est globale en Étape 9.
     
 
 ---
@@ -163,14 +179,20 @@ Les métadonnées de l’entretien (date, durée, mode de recueil) sont automati
     
 - L’application génère :
     
-    - un document DOCX modifiable,
+    - un document DOCX modifiable du bilan : `output/BDS_<numero_session>.docx`,
         
-    - un PDF destiné à l’impression et/ou à l’export.
+    - un document DOCX modifiable du plan d’action : `output/PAC_<numero_session>.docx`,
+        
+    - un PDF du bilan : `output/BDS_<numero_session>.pdf`,
+        
+    - un PDF du plan d’action : `output/PAC_<numero_session>.pdf`.
         
 
 Les documents intègrent automatiquement l’identité graphique de la pharmacie.
 
-**Une fois les documents générés et validés, la session est automatiquement clôturée et l’ensemble des données associées à la session est supprimé** (questionnaire, transcript, métadonnées, et audio le cas échéant).
+**Une fois les 4 documents générés et validés, la session est automatiquement clôturée et l'ensemble des données associées à la session est supprimé** (questionnaire, transcript, métadonnées, et audio le cas échéant).
+
+En cas d'échec de génération d'un document attendu, ce document est considéré **non créé**. La session reste active et le pharmacien peut relancer la génération du document en échec. La purge n'intervient que lorsque les 4 documents attendus ont été créés avec succès.
 
 ---
 
@@ -271,6 +293,23 @@ Les données d’entrée correspondent exclusivement aux informations collectée
     - conditionne uniquement l’activation de l’enregistrement audio,
         
     - n’influence ni l’analyse ni les actions proposées.
+
+### 4.6 Payload QRCode de session
+
+- **Description** : charge utile transportée dans le QRCode de session.
+    
+- **Format** : chaîne de caractères (URL locale ou deep-link) :
+  `bsp://session?v=1&sid=<session_id>&t=<token>&sig=<signature>`.
+    
+- **Champs** :
+    
+    - `v` : version du format,
+        
+    - `sid` : identifiant de session (UUID),
+        
+    - `t` : token opaque non devinable,
+        
+    - `sig` : signature/HMAC anti-falsification.
         
 
 Aucune donnée externe, aucun historique patient et aucune supposition ne sont utilisés par le système.
@@ -325,6 +364,12 @@ Aucune donnée externe, aucun historique patient et aucune supposition ne sont u
     
     - document modifiable,
         
+    - fichiers attendus :
+        
+        - `output/BDS_<numero_session>.docx` (bilan),
+            
+        - `output/PAC_<numero_session>.docx` (plan d’action),
+        
     - structure standardisée conforme au bilan,
         
     - intégration automatique de l’identité graphique de la pharmacie,
@@ -335,12 +380,20 @@ Aucune donnée externe, aucun historique patient et aucune supposition ne sont u
     
     - document figé,
         
+    - fichiers attendus :
+        
+        - `output/BDS_<numero_session>.pdf` (bilan),
+            
+        - `output/PAC_<numero_session>.pdf` (plan d’action),
+        
     - prêt à l’impression pour remise au patient,
         
     - utilisable pour export ou transmission manuelle (ex. LGO).
         
 
 Les documents sont générés uniquement après validation explicite du pharmacien.
+
+En cas d’échec de génération d’un document attendu, ce document est non créé.
 
 ---
 
@@ -354,7 +407,7 @@ Les documents sont générés uniquement après validation explicite du pharmaci
     
 - Données stockées localement et de façon temporaire.
     
-- **Aucune durée de conservation par défaut** : les données d’une session sont supprimées automatiquement dès que l’entretien est validé et que les documents finaux ont été générés.
+- **Aucune durée de conservation par défaut** : les données d'une session sont supprimées automatiquement dès que les 4 documents finaux ont été générés et validés. En cas d'échec de génération d'un document, la session reste active pour permettre une relance.
     
 
 ---

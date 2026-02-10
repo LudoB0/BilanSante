@@ -38,9 +38,8 @@ Lister uniquement les donnees explicitement decrites dans le PRD.
 | Enregistrement audio | audio | Oui | Enregistrement audio |
 
 ### 3.2 Regles de priorite des entrees
-- Le transcript de l'entretien officinal est la source de verite principale.
-- Les reponses au questionnaire sont utilisees uniquement comme contexte.
-- Les donnees de consentement et de metadonnees n'ont aucun role decisionnel.
+- L'enregistrement audio est la seule source d'entree.
+- La transcription doit etre fidele au propos, sans reformulation.
 
 Aucune autre source de donnees n'est autorisee.
 
@@ -54,12 +53,9 @@ Le skill ne doit pas s'executer si :
 
 ## 5. Regles IA strictes (conformes PRD)
 
-- Aucune information ne doit etre inventee.
-- Aucune action ne peut etre proposee sans justification explicite issue du transcript.
-- Toute information absente ou ambigue doit etre signalee explicitement.
-- Aucune interpretation medicale, diagnostic ou prescription.
-- Le langage doit etre professionnel, clair pour le patient et adapte au contexte officinal.
-- Le pharmacien reste maitre du contenu final.
+- Fidelite au propos, sans reformulation ni ajout.
+- Aucune interpretation ou analyse du contenu.
+- Le transcript produit n'est pas encore valide ; il doit etre valide par le pharmacien.
 
 Ces regles sont imperatives et prioritaires.
 
@@ -93,17 +89,15 @@ Etapes logiques :
 | Audio inaudible ou incomplet. | Signalement explicite sans extrapolation |
 | Entree obligatoire absente | Blocage |
 | Information contradictoire | Signalement sans arbitrage |
-| Transcript vide ou trop court | Sortie minimale sans extrapolation |
 
 ---
 
 ## 9. Criteres d'acceptation
 
 Le skill est conforme si :
-- Toutes les informations presentes sont tracables au transcript.
-- Aucune donnee non exprimee n'apparait.
+- Le transcript est fidele au contenu audio.
+- Aucune information n'a ete ajoutee ou reformulee.
 - Le format de sortie est strictement respecte.
-- Le contenu est comprehensible par un patient sans reformulation.
 
 Un seul critere non respecte rend le skill non conforme.
 
@@ -112,8 +106,8 @@ Un seul critere non respecte rend le skill non conforme.
 ## 10. Post-conditions
 
 Apres execution :
-- Les donnees produites sont pretes a etre relues, modifiees et validees par le pharmacien.
-- Aucune persistance automatique de donnees apres validation finale de la session.
+- Le transcript textuel est disponible pour relecture et validation par le pharmacien.
+- Le transcript n'est pas encore la source de verite (validation requise).
 
 ---
 
