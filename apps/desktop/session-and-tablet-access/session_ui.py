@@ -37,7 +37,10 @@ def create_ui_state() -> Dict[str, Any]:
         "pharmacy_context": dict(_EMPTY_PHARMACY_CONTEXT),
         "available_age_ranges": [],
         "selected_age_range": None,
+        "selected_sex": None,
         "session": None,
+        "qr_data": None,
+        "questionnaire_status": None,
         "errors": [],
         "precondition_errors": [],
     }
@@ -84,6 +87,21 @@ def deselect_age_range(state: Dict[str, Any]) -> Dict[str, Any]:
     return new
 
 
+def select_sex(state: Dict[str, Any], sex: str) -> Dict[str, Any]:
+    """Set the selected sex (``H`` or ``F``)."""
+    new = deepcopy(state)
+    new["selected_sex"] = sex
+    new["errors"] = []
+    return new
+
+
+def deselect_sex(state: Dict[str, Any]) -> Dict[str, Any]:
+    """Clear the selected sex."""
+    new = deepcopy(state)
+    new["selected_sex"] = None
+    return new
+
+
 def validate_ui_state(state: Dict[str, Any]) -> List[str]:
     """Validate the state for session creation readiness.
 
@@ -98,6 +116,10 @@ def validate_ui_state(state: Dict[str, Any]) -> List[str]:
         "available_age_ranges", []
     ):
         errors.append("Tranche d'age non disponible")
+    if state.get("selected_sex") is None:
+        errors.append("Aucun sexe selectionne")
+    elif state["selected_sex"] not in ("H", "F"):
+        errors.append("Sexe invalide")
     return errors
 
 
@@ -136,12 +158,74 @@ def mark_error(
     return new
 
 
-def build_submission_payload(state: Dict[str, Any]) -> str:
-    """Return the selected age range for session creation.
+def build_submission_payload(state: Dict[str, Any]) -> Dict[str, str]:
+    """Return age range and sex for session creation.
 
     Raises ``ValueError`` if the state is not valid.
     """
     errors = validate_ui_state(state)
     if errors:
         raise ValueError("Validation echouee: " + "; ".join(errors))
-    return state["selected_age_range"]
+    return {
+        "age_range": state["selected_age_range"],
+        "sex": state["selected_sex"],
+    }
+
+
+# ---------------------------------------------------------------------------
+# QR Code state transitions (GenerateSessionQRCode)
+# ---------------------------------------------------------------------------
+
+
+def mark_qr_generating(state: Dict[str, Any]) -> Dict[str, Any]:
+    """Transition to ``"qr_generating"`` status."""
+    new = deepcopy(state)
+    new["status"] = "qr_generating"
+    return new
+
+
+def mark_qr_ready(
+    state: Dict[str, Any], qr_data: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Transition to ``"qr_ready"`` and store QR data."""
+    new = deepcopy(state)
+    new["status"] = "qr_ready"
+    new["qr_data"] = dict(qr_data)
+    new["errors"] = []
+    return new
+
+
+def mark_qr_error(
+    state: Dict[str, Any], errors: List[str]
+) -> Dict[str, Any]:
+    """Transition to ``"erreur"`` due to QR generation failure."""
+    new = deepcopy(state)
+    new["status"] = "erreur"
+    new["errors"] = list(errors)
+    return new
+
+
+# ---------------------------------------------------------------------------
+# Questionnaire status transitions
+# ---------------------------------------------------------------------------
+
+
+def mark_questionnaire_disponible(state: Dict[str, Any]) -> Dict[str, Any]:
+    """Set questionnaire status to ``"disponible"``."""
+    new = deepcopy(state)
+    new["questionnaire_status"] = "disponible"
+    return new
+
+
+def mark_questionnaire_en_cours(state: Dict[str, Any]) -> Dict[str, Any]:
+    """Set questionnaire status to ``"en_cours"``."""
+    new = deepcopy(state)
+    new["questionnaire_status"] = "en_cours"
+    return new
+
+
+def mark_questionnaire_termine(state: Dict[str, Any]) -> Dict[str, Any]:
+    """Set questionnaire status to ``"termine"``."""
+    new = deepcopy(state)
+    new["questionnaire_status"] = "termine"
+    return new

@@ -37,10 +37,11 @@ def _loaded_state(ui, **overrides):
     return ui.load_context(state, ctx, ranges, errors)
 
 
-def _ready_with_selection(ui, age_range="45-50"):
-    """Return a ready state with an age range selected."""
+def _ready_with_selection(ui, age_range="45-50", sex="H"):
+    """Return a ready state with an age range and sex selected."""
     state = _loaded_state(ui)
-    return ui.select_age_range(state, age_range)
+    state = ui.select_age_range(state, age_range)
+    return ui.select_sex(state, sex)
 
 
 def _session_data():
@@ -48,6 +49,7 @@ def _session_data():
     return {
         "session_id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
         "age_range": "45-50",
+        "sex": "H",
         "created_at": "2026-02-10T10:00:00",
         "status": "active",
         "metadata": {
@@ -95,6 +97,10 @@ class TestCreateUiState:
     def test_precondition_errors_is_empty(self, session_ui_adapter):
         state = session_ui_adapter.create_ui_state()
         assert state["precondition_errors"] == []
+
+    def test_selected_sex_is_none(self, session_ui_adapter):
+        state = session_ui_adapter.create_ui_state()
+        assert state["selected_sex"] is None
 
 
 # ---------------------------------------------------------------------------
@@ -189,6 +195,49 @@ class TestDeselectAgeRange:
 
 
 # ---------------------------------------------------------------------------
+# TestSelectSex
+# ---------------------------------------------------------------------------
+
+
+class TestSelectSex:
+    def test_sets_selected_sex(self, session_ui_adapter):
+        state = _loaded_state(session_ui_adapter)
+        updated = session_ui_adapter.select_sex(state, "H")
+        assert updated["selected_sex"] == "H"
+
+    def test_clears_errors(self, session_ui_adapter):
+        state = _loaded_state(session_ui_adapter)
+        state = session_ui_adapter.mark_error(state, ["Some error"])
+        state["status"] = "ready"
+        updated = session_ui_adapter.select_sex(state, "F")
+        assert updated["errors"] == []
+
+    def test_does_not_mutate_original(self, session_ui_adapter):
+        state = _loaded_state(session_ui_adapter)
+        session_ui_adapter.select_sex(state, "H")
+        assert state["selected_sex"] is None
+
+
+# ---------------------------------------------------------------------------
+# TestDeselectSex
+# ---------------------------------------------------------------------------
+
+
+class TestDeselectSex:
+    def test_clears_selection(self, session_ui_adapter):
+        state = _loaded_state(session_ui_adapter)
+        state = session_ui_adapter.select_sex(state, "H")
+        updated = session_ui_adapter.deselect_sex(state)
+        assert updated["selected_sex"] is None
+
+    def test_does_not_mutate_original(self, session_ui_adapter):
+        state = _loaded_state(session_ui_adapter)
+        state = session_ui_adapter.select_sex(state, "F")
+        session_ui_adapter.deselect_sex(state)
+        assert state["selected_sex"] == "F"
+
+
+# ---------------------------------------------------------------------------
 # TestValidateUiState
 # ---------------------------------------------------------------------------
 
@@ -204,6 +253,12 @@ class TestValidateUiState:
         errors = session_ui_adapter.validate_ui_state(state)
         assert any("tranche" in e.lower() for e in errors)
 
+    def test_error_when_no_sex_selected(self, session_ui_adapter):
+        state = _loaded_state(session_ui_adapter)
+        state = session_ui_adapter.select_age_range(state, "45-50")
+        errors = session_ui_adapter.validate_ui_state(state)
+        assert any("sexe" in e.lower() for e in errors)
+
     def test_error_when_preconditions_failed(self, session_ui_adapter):
         state = _loaded_state(
             session_ui_adapter,
@@ -217,6 +272,13 @@ class TestValidateUiState:
         state = session_ui_adapter.select_age_range(state, "70-75")
         errors = session_ui_adapter.validate_ui_state(state)
         assert any("disponible" in e.lower() for e in errors)
+
+    def test_error_when_invalid_sex(self, session_ui_adapter):
+        state = _loaded_state(session_ui_adapter)
+        state = session_ui_adapter.select_age_range(state, "45-50")
+        state = session_ui_adapter.select_sex(state, "X")
+        errors = session_ui_adapter.validate_ui_state(state)
+        assert any("sexe" in e.lower() for e in errors)
 
 
 # ---------------------------------------------------------------------------
@@ -326,10 +388,15 @@ class TestMarkError:
 
 
 class TestBuildSubmissionPayload:
-    def test_returns_age_range_when_valid(self, session_ui_adapter):
-        state = _ready_with_selection(session_ui_adapter, "45-50")
+    def test_returns_dict_with_age_range_and_sex(self, session_ui_adapter):
+        state = _ready_with_selection(session_ui_adapter, "45-50", sex="H")
         result = session_ui_adapter.build_submission_payload(state)
-        assert result == "45-50"
+        assert result == {"age_range": "45-50", "sex": "H"}
+
+    def test_returns_correct_sex(self, session_ui_adapter):
+        state = _ready_with_selection(session_ui_adapter, "45-50", sex="F")
+        result = session_ui_adapter.build_submission_payload(state)
+        assert result["sex"] == "F"
 
     def test_raises_when_no_selection(self, session_ui_adapter):
         state = _loaded_state(session_ui_adapter)
@@ -343,3 +410,211 @@ class TestBuildSubmissionPayload:
         )
         with pytest.raises(ValueError, match="Validation"):
             session_ui_adapter.build_submission_payload(state)
+
+
+# ---------------------------------------------------------------------------
+# Test helpers for QR code
+# ---------------------------------------------------------------------------
+
+
+def _qr_data():
+    """Return a fake QR data dict."""
+    return {
+        "payload": "http://localhost:5000/questionnaire?v=1&sid=abc&t=tok&sig=sig",
+        "session_id": "abc",
+        "version": 1,
+        "token": "tok",
+        "signature": "sig",
+    }
+
+
+# ---------------------------------------------------------------------------
+# TestCreateUiStateQrField
+# ---------------------------------------------------------------------------
+
+
+class TestCreateUiStateQrField:
+    def test_qr_data_is_none(self, session_ui_adapter):
+        state = session_ui_adapter.create_ui_state()
+        assert state["qr_data"] is None
+
+
+# ---------------------------------------------------------------------------
+# TestMarkQrGenerating
+# ---------------------------------------------------------------------------
+
+
+class TestMarkQrGenerating:
+    def test_transitions_to_qr_generating(self, session_ui_adapter):
+        state = _ready_with_selection(session_ui_adapter)
+        state = session_ui_adapter.mark_created(state, _session_data())
+        updated = session_ui_adapter.mark_qr_generating(state)
+        assert updated["status"] == "qr_generating"
+
+    def test_does_not_mutate_original(self, session_ui_adapter):
+        state = _ready_with_selection(session_ui_adapter)
+        state = session_ui_adapter.mark_created(state, _session_data())
+        session_ui_adapter.mark_qr_generating(state)
+        assert state["status"] == "created"
+
+
+# ---------------------------------------------------------------------------
+# TestMarkQrReady
+# ---------------------------------------------------------------------------
+
+
+class TestMarkQrReady:
+    def test_transitions_to_qr_ready(self, session_ui_adapter):
+        state = _ready_with_selection(session_ui_adapter)
+        state = session_ui_adapter.mark_created(state, _session_data())
+        updated = session_ui_adapter.mark_qr_ready(state, _qr_data())
+        assert updated["status"] == "qr_ready"
+
+    def test_stores_qr_data(self, session_ui_adapter):
+        state = _ready_with_selection(session_ui_adapter)
+        state = session_ui_adapter.mark_created(state, _session_data())
+        qr = _qr_data()
+        updated = session_ui_adapter.mark_qr_ready(state, qr)
+        assert updated["qr_data"]["payload"] == qr["payload"]
+        assert updated["qr_data"]["token"] == qr["token"]
+        assert updated["qr_data"]["signature"] == qr["signature"]
+
+    def test_clears_errors(self, session_ui_adapter):
+        state = _ready_with_selection(session_ui_adapter)
+        state = session_ui_adapter.mark_error(state, ["err"])
+        updated = session_ui_adapter.mark_qr_ready(state, _qr_data())
+        assert updated["errors"] == []
+
+    def test_does_not_mutate_original(self, session_ui_adapter):
+        state = _ready_with_selection(session_ui_adapter)
+        state = session_ui_adapter.mark_created(state, _session_data())
+        session_ui_adapter.mark_qr_ready(state, _qr_data())
+        assert state["qr_data"] is None
+
+    def test_qr_data_contains_all_fields(self, session_ui_adapter):
+        state = _ready_with_selection(session_ui_adapter)
+        state = session_ui_adapter.mark_created(state, _session_data())
+        updated = session_ui_adapter.mark_qr_ready(state, _qr_data())
+        qr = updated["qr_data"]
+        assert "payload" in qr
+        assert "session_id" in qr
+        assert "version" in qr
+        assert "token" in qr
+        assert "signature" in qr
+
+
+# ---------------------------------------------------------------------------
+# TestMarkQrError
+# ---------------------------------------------------------------------------
+
+
+class TestMarkQrError:
+    def test_transitions_to_erreur(self, session_ui_adapter):
+        state = _ready_with_selection(session_ui_adapter)
+        state = session_ui_adapter.mark_created(state, _session_data())
+        updated = session_ui_adapter.mark_qr_error(state, ["QR erreur"])
+        assert updated["status"] == "erreur"
+
+    def test_stores_errors(self, session_ui_adapter):
+        state = _ready_with_selection(session_ui_adapter)
+        state = session_ui_adapter.mark_created(state, _session_data())
+        updated = session_ui_adapter.mark_qr_error(
+            state, ["err1", "err2"]
+        )
+        assert updated["errors"] == ["err1", "err2"]
+
+    def test_does_not_mutate_original(self, session_ui_adapter):
+        state = _ready_with_selection(session_ui_adapter)
+        state = session_ui_adapter.mark_created(state, _session_data())
+        session_ui_adapter.mark_qr_error(state, ["err"])
+        assert state["status"] == "created"
+
+
+# ---------------------------------------------------------------------------
+# TestQuestionnaireStatusInitial
+# ---------------------------------------------------------------------------
+
+
+class TestQuestionnaireStatusInitial:
+    def test_initial_questionnaire_status_is_none(self, session_ui_adapter):
+        state = session_ui_adapter.create_ui_state()
+        assert state["questionnaire_status"] is None
+
+
+# ---------------------------------------------------------------------------
+# TestMarkQuestionnaireDisponible
+# ---------------------------------------------------------------------------
+
+
+class TestMarkQuestionnaireDisponible:
+    def test_sets_status_disponible(self, session_ui_adapter):
+        state = _ready_with_selection(session_ui_adapter)
+        state = session_ui_adapter.mark_created(state, _session_data())
+        updated = session_ui_adapter.mark_questionnaire_disponible(state)
+        assert updated["questionnaire_status"] == "disponible"
+
+    def test_does_not_change_main_status(self, session_ui_adapter):
+        state = _ready_with_selection(session_ui_adapter)
+        state = session_ui_adapter.mark_created(state, _session_data())
+        updated = session_ui_adapter.mark_questionnaire_disponible(state)
+        assert updated["status"] == "created"
+
+    def test_does_not_mutate_original(self, session_ui_adapter):
+        state = _ready_with_selection(session_ui_adapter)
+        state = session_ui_adapter.mark_created(state, _session_data())
+        session_ui_adapter.mark_questionnaire_disponible(state)
+        assert state["questionnaire_status"] is None
+
+
+# ---------------------------------------------------------------------------
+# TestMarkQuestionnaireEnCours
+# ---------------------------------------------------------------------------
+
+
+class TestMarkQuestionnaireEnCours:
+    def test_sets_status_en_cours(self, session_ui_adapter):
+        state = _ready_with_selection(session_ui_adapter)
+        state = session_ui_adapter.mark_created(state, _session_data())
+        state = session_ui_adapter.mark_questionnaire_disponible(state)
+        updated = session_ui_adapter.mark_questionnaire_en_cours(state)
+        assert updated["questionnaire_status"] == "en_cours"
+
+    def test_does_not_change_main_status(self, session_ui_adapter):
+        state = _ready_with_selection(session_ui_adapter)
+        state = session_ui_adapter.mark_created(state, _session_data())
+        updated = session_ui_adapter.mark_questionnaire_en_cours(state)
+        assert updated["status"] == "created"
+
+    def test_does_not_mutate_original(self, session_ui_adapter):
+        state = _ready_with_selection(session_ui_adapter)
+        state = session_ui_adapter.mark_created(state, _session_data())
+        state = session_ui_adapter.mark_questionnaire_disponible(state)
+        session_ui_adapter.mark_questionnaire_en_cours(state)
+        assert state["questionnaire_status"] == "disponible"
+
+
+# ---------------------------------------------------------------------------
+# TestMarkQuestionnaireTermine
+# ---------------------------------------------------------------------------
+
+
+class TestMarkQuestionnaireTermine:
+    def test_sets_status_termine(self, session_ui_adapter):
+        state = _ready_with_selection(session_ui_adapter)
+        state = session_ui_adapter.mark_created(state, _session_data())
+        state = session_ui_adapter.mark_questionnaire_en_cours(state)
+        updated = session_ui_adapter.mark_questionnaire_termine(state)
+        assert updated["questionnaire_status"] == "termine"
+
+    def test_does_not_change_main_status(self, session_ui_adapter):
+        state = _ready_with_selection(session_ui_adapter)
+        state = session_ui_adapter.mark_created(state, _session_data())
+        updated = session_ui_adapter.mark_questionnaire_termine(state)
+        assert updated["status"] == "created"
+
+    def test_does_not_mutate_original(self, session_ui_adapter):
+        state = _ready_with_selection(session_ui_adapter)
+        state = session_ui_adapter.mark_created(state, _session_data())
+        state = session_ui_adapter.mark_questionnaire_en_cours(state)
+        session_ui_adapter.mark_questionnaire_termine(state)
+        assert state["questionnaire_status"] == "en_cours"

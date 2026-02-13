@@ -168,3 +168,91 @@ def session_ui_adapter():
         / "session_ui.py"
     )
     return load_module_from_path("session_ui", path)
+
+
+# ---------------------------------------------------------------------------
+# Questionnaire-capture fixtures (CaptureQuestionnaireResponses)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def capture_service():
+    """Load the questionnaire-capture service module."""
+    path = (
+        PROJECT_ROOT
+        / "apps"
+        / "api"
+        / "modules"
+        / "questionnaire-capture"
+        / "service.py"
+    )
+    return load_module_from_path("capture_service", path)
+
+
+# ---------------------------------------------------------------------------
+# Tablet server fixtures (ServeQuestionnaireOnTablet)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def tablet_server_module():
+    """Load the tablet_server module."""
+    path = (
+        PROJECT_ROOT
+        / "apps"
+        / "api"
+        / "modules"
+        / "session-and-tablet-access"
+        / "tablet_server.py"
+    )
+    return load_module_from_path("tablet_server", path)
+
+
+# ---------------------------------------------------------------------------
+# Bilan-assembly fixtures (BuildQuestionnaireSummarySection)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def bilan_assembly_service():
+    """Load the bilan-assembly service module."""
+    path = (
+        PROJECT_ROOT
+        / "apps"
+        / "api"
+        / "modules"
+        / "bilan-assembly"
+        / "service.py"
+    )
+    return load_module_from_path("bilan_assembly_service", path)
+
+
+@pytest.fixture
+def summary_ui_adapter():
+    """Load the questionnaire_summary_ui adapter module."""
+    path = (
+        PROJECT_ROOT
+        / "apps"
+        / "desktop"
+        / "bilan-assembly"
+        / "questionnaire_summary_ui.py"
+    )
+    return load_module_from_path("questionnaire_summary_ui", path)
+
+
+# ---------------------------------------------------------------------------
+# Co-production fixtures (IdentifyVigilancePoints)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def co_production_ui_adapter():
+    """Load the co_production_ui adapter module."""
+    path = (
+        PROJECT_ROOT
+        / "apps"
+        / "desktop"
+        / "co-production"
+        / "co_production_ui.py"
+    )
+    return load_module_from_path("co_production_ui", path)

@@ -480,6 +480,36 @@ class TestValidateUiState:
         errors = catalog_ui_adapter.validate_ui_state(state)
         assert errors == []
 
+    def test_invalid_sex_target(self, catalog_ui_adapter):
+        state = catalog_ui_adapter.create_ui_state()
+        q = _question()
+        q["sex_target"] = "X"
+        state = catalog_ui_adapter.select_age_range(
+            state, "18-25", _questionnaire(questions=[q])
+        )
+        errors = catalog_ui_adapter.validate_ui_state(state)
+        assert any("sex_target invalide" in e for e in errors)
+
+    def test_valid_sex_target(self, catalog_ui_adapter):
+        state = catalog_ui_adapter.create_ui_state()
+        q = _question()
+        q["sex_target"] = "F"
+        state = catalog_ui_adapter.select_age_range(
+            state, "18-25", _questionnaire(questions=[q])
+        )
+        errors = catalog_ui_adapter.validate_ui_state(state)
+        assert errors == []
+
+    def test_missing_sex_target_is_ok(self, catalog_ui_adapter):
+        state = catalog_ui_adapter.create_ui_state()
+        q = _question()
+        q.pop("sex_target", None)
+        state = catalog_ui_adapter.select_age_range(
+            state, "18-25", _questionnaire(questions=[q])
+        )
+        errors = catalog_ui_adapter.validate_ui_state(state)
+        assert errors == []
+
 
 # ===================================================================
 # build_submission_payload

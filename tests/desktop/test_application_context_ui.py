@@ -87,3 +87,8 @@ class TestBuildSubmissionPayload:
         payload = ui_adapter.build_submission_payload(valid_ui_state)
         assert "site_web" in payload
         assert "instagram" in payload
+
+    def test_payload_contains_modele_ia(self, ui_adapter, valid_ui_state):
+        valid_ui_state["modele_ia"] = "eco"
+        payload = ui_adapter.build_submission_payload(valid_ui_state)
+        assert payload["modele_ia"] == "eco"

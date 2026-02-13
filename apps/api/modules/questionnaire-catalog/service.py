@@ -28,6 +28,8 @@ VALID_QUESTION_TYPES: tuple[str, ...] = (
     "scale",
 )
 
+VALID_SEX_TARGETS: tuple[str, ...] = ("H", "F", "M")
+
 DEFAULT_SCALE_CONFIG: Dict[str, int] = {"min": 1, "max": 10, "step": 1}
 
 
@@ -126,6 +128,10 @@ def validate_questionnaire(questionnaire: Dict[str, Any]) -> List[str]:
         label = q.get("label")
         if not isinstance(label, str) or label.strip() == "":
             errors.append(f"{prefix}: libelle manquant")
+
+        sex_target = q.get("sex_target")
+        if sex_target is not None and sex_target not in VALID_SEX_TARGETS:
+            errors.append(f"{prefix}: sex_target invalide ({sex_target})")
 
         qtype = q.get("type")
         if qtype not in VALID_QUESTION_TYPES:
@@ -236,6 +242,7 @@ def new_question(
         "type": qtype,
         "label": "",
         "required": True,
+        "sex_target": "M",
         "options": [],
         "scale_config": None,
     }

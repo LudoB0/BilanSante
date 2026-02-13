@@ -18,6 +18,8 @@ VALID_QUESTION_TYPES: tuple[str, ...] = (
     "scale",
 )
 
+VALID_SEX_TARGETS: tuple[str, ...] = ("H", "F", "M")
+
 
 def create_ui_state(
     configured_ranges: List[str] | None = None,
@@ -223,6 +225,10 @@ def validate_ui_state(state: Dict[str, Any]) -> List[str]:
         prefix = f"Question {i + 1}"
         if not q.get("label", "").strip():
             errors.append(f"{prefix}: libelle manquant")
+
+        sex_target = q.get("sex_target")
+        if sex_target is not None and sex_target not in VALID_SEX_TARGETS:
+            errors.append(f"{prefix}: sex_target invalide ({sex_target})")
 
         qtype = q.get("type")
         if qtype not in VALID_QUESTION_TYPES:

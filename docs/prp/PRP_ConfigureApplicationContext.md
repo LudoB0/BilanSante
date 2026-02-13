@@ -36,12 +36,13 @@ Lister uniquement les donnees explicitement decrites dans le PRD.
 | Champ | Type | Obligatoire | Description |
 |------|------|------------|-------------|
 | Identite de la pharmacie | texte | Oui | Identite de la pharmacie (logo, coordonnees, en-tete/pied de page) |
-| Choix du fournisseur IA | non specifie | Oui | Choix du fournisseur IA |
-| Cle API obligatoire | non specifie | Oui | Cle API obligatoire |
+| Choix du fournisseur IA | enum | Oui | `OpenIA` ou `Anthropic` ou `Mistral` |
+| Cle API obligatoire | texte | Oui | Cle API du fournisseur IA selectionne |
 
 ### 3.2 Regles de priorite des entrees
 - Les entrees de parametrage sont independantes des sessions patient.
 - Aucune donnee patient n'est impliquee.
+- Le fournisseur IA doit etre choisi parmi `OpenIA`, `Anthropic`, `Mistral`.
 
 Aucune autre source de donnees n'est autorisee.
 
@@ -84,6 +85,7 @@ Etapes logiques :
 ### 7.2 Schema de sortie
 - Donnees de parametrage applicatif enregistrees (identite pharmacie, informations de contact, fournisseur IA, cle API).
 - Stockage persistant dans config/.
+- Le fournisseur IA enregistre est l'une des 3 valeurs autorisees : `OpenIA`, `Anthropic`, `Mistral`.
 
 ---
 
@@ -92,6 +94,7 @@ Etapes logiques :
 | Situation | Comportement attendu |
 |---------|----------------------|
 | Cle API manquante ou invalide. | Signalement explicite sans extrapolation |
+| Fournisseur IA hors liste autorisee | Blocage |
 | Entree obligatoire absente | Blocage |
 | Information contradictoire | Signalement sans arbitrage |
 
@@ -102,6 +105,7 @@ Etapes logiques :
 Le skill est conforme si :
 - Toutes les donnees de parametrage obligatoires sont presentes.
 - La cle API est valide.
+- Le fournisseur IA est valide (`OpenIA`, `Anthropic` ou `Mistral`).
 - Le parametrage est enregistre et accessible par les modules de generation documentaire.
 
 Un seul critere non respecte rend le skill non conforme.

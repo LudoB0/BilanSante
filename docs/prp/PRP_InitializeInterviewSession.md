@@ -4,7 +4,7 @@
 
 - Nom du skill : InitializeInterviewSession
 - Reference PRD : PRD V1 PRD 3 Etape 3 / 4.1; PRD 4.4 / 5; PRD 6
-- Version : V2
+- Version : V3
 - Statut : draft
 - Dependances (autres skills ou donnees) : ConfigureApplicationContext (lecture config/settings.json), CreateQuestionnaireByAgeRange (lecture config/questionnaires/)
 
@@ -12,7 +12,7 @@
 
 ## 1. Intention (obligatoire - 1 phrase)
 
-Afficher le contexte pharmacie, permettre la selection d'une tranche d'age parmi les questionnaires non vides, et creer une session unique stockee dans `data/`.
+Afficher le contexte pharmacie, permettre la selection d'une tranche d'age parmi les questionnaires non vides, ainsi que la selection du sexe (Homme, Femme) et creer une session unique stockee dans `data/` avec `sex` normalise (`H` ou `F`).
 
 ---
 
@@ -23,8 +23,10 @@ Afficher le contexte pharmacie, permettre la selection d'une tranche d'age parmi
 - Lire et afficher les informations de la pharmacie depuis `config/settings.json` (nom, adresse, code postal, ville, logo) et les liens web non vides (site_web, instagram, facebook, x, linkedin).
 - Lister les tranches d'age disposant d'un questionnaire non vide dans `config/questionnaires/`.
 - Permettre au pharmacien de selectionner une tranche d'age parmi celles disponibles.
+- Permettre au pharmacien de selectionner le sexe (Homme / Femme) via l'UI.
+- Mapper la selection UI vers le champ session `sex` (`Homme` -> `H`, `Femme` -> `F`).
 - Creer une session unique identifiee par un UUID v4 et stocker le fichier session dans `data/sessions/`.
-- Enregistrer les metadonnees de session (identifiant, tranche d'age, date/heure de creation, coordonnees pharmacie).
+- Enregistrer les metadonnees de session (identifiant, tranche d'age, sexe, date/heure de creation, coordonnees pharmacie).
 
 ### 2.2 Ce que le skill NE FAIT PAS
 
@@ -43,6 +45,7 @@ Afficher le contexte pharmacie, permettre la selection d'une tranche d'age parmi
 | Champ | Type | Obligatoire | Description |
 |-------|------|-------------|-------------|
 | Tranche d'age du patient | valeur categorielle | Oui | Selectionnee par le pharmacien parmi les questionnaires non vides |
+| Sexe de la session (`sex`) | texte | Oui | Selection UI `Homme`/`Femme`, stockee en code normalise `H`/`F` |
 
 ### 3.2 Donnees lues (contexte, lecture seule)
 
@@ -55,7 +58,8 @@ Afficher le contexte pharmacie, permettre la selection d'une tranche d'age parmi
 
 ### 3.3 Regles de priorite des entrees
 
-- La tranche d'age du patient est la seule entree saisie par l'utilisateur.
+- La tranche d'age du patient est une entree obligatoire saisie par l'utilisateur.
+- Le sexe est une entree obligatoire saisie par l'utilisateur et stockee au format `H`/`F`.
 - Les donnees pharmacie et questionnaires sont lues depuis `config/` (lecture seule).
 - Aucune donnee nominative n'est necessaire.
 
@@ -79,6 +83,7 @@ Le skill ne doit pas s'executer si :
 - L'identifiant de session doit etre unique (UUID v4).
 - Les liens web ne sont affiches que s'ils sont non vides dans `settings.json`.
 - Seules les tranches d'age avec un questionnaire contenant au moins une question sont proposees.
+- Le champ `sex` en session doit etre strictement `H` ou `F`.
 
 Ces regles sont imperatives et prioritaires.
 
@@ -92,8 +97,9 @@ Etapes logiques :
 2. Charger et afficher les informations pharmacie depuis `config/settings.json` et `config/img/logo.png`.
 3. Afficher les liens web non vides (site_web, instagram, facebook, x, linkedin).
 4. Lister les tranches d'age disposant d'un questionnaire non vide et les proposer au pharmacien.
-5. Attendre la selection d'une tranche d'age par le pharmacien.
-6. Au clic sur "Demarrer l'entretien", generer un UUID v4 unique et creer le fichier session dans `data/sessions/<session_id>.json`.
+5. Attendre la selection d'une tranche d'age et d'un sexe (Homme/Femme) par le pharmacien.
+6. Mapper le sexe UI vers `sex` (`Homme` -> `H`, `Femme` -> `F`).
+7. Au clic sur "Demarrer l'entretien", generer un UUID v4 unique et creer le fichier session dans `data/sessions/<session_id>.json`.
 
 ---
 
@@ -107,6 +113,7 @@ Etapes logiques :
 
 - `session_id` : UUID v4 unique
 - `age_range` : tranche d'age selectionnee
+- `sex` : `H` ou `F`
 - `created_at` : date/heure de creation ISO 8601
 - `status` : `"active"`
 - `metadata.pharmacie` : copie des coordonnees pharmacie (nom_pharmacie, adresse, code_postal, ville) au moment de la creation
@@ -120,6 +127,8 @@ Etapes logiques :
 | Parametrage applicatif incomplet | Message explicite, bouton desactive |
 | Aucun questionnaire disponible | Message explicite, bouton desactive |
 | Tranche d'age non selectionnee | Bouton "Demarrer l'entretien" desactive |
+| Sexe non selectionne | Bouton "Demarrer l'entretien" desactive |
+| Valeur sexe hors `H`/`F` au moment de la creation session | Blocage |
 | Session non creee (echec ecriture) | Signalement explicite sans extrapolation |
 | Collision UUID | Regeneration automatique |
 | Tous les liens web vides | Section liens non affichee |
@@ -133,6 +142,7 @@ Le skill est conforme si :
 - Les informations pharmacie (logo, nom, adresse, code postal, ville) sont affichees.
 - Les liens web non vides sont affiches, les vides sont masques.
 - Seules les tranches d'age avec questionnaire non vide sont proposees.
+- Le sexe est selectionnable en UI (`Homme`/`Femme`) et stocke en session au format `H`/`F`.
 - Un identifiant de session unique (UUID v4) est genere.
 - Les metadonnees de session (date/heure de creation, coordonnees pharmacie) sont associees.
 - Le fichier session est stocke dans `data/sessions/`.
@@ -148,6 +158,7 @@ Apres execution :
 
 - La session est creee et active dans `data/sessions/`.
 - Les modules de collecte peuvent s'y rattacher via le session_id.
+- Les modules aval peuvent filtrer les questions via le champ `sex` (`H`/`F`).
 - Les donnees de parametrage dans `config/` n'ont pas ete modifiees.
 
 ---

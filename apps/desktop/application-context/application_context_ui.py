@@ -27,6 +27,7 @@ OPTIONAL_UI_FIELDS = (
     "facebook",
     "x",
     "linkedin",
+    "modele_ia",
 )
 
 

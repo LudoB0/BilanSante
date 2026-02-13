@@ -2,60 +2,77 @@
 
 ## 1. Reference contractuelle
 - PRP de reference : /docs/prp/PRP_CaptureQuestionnaireResponses.md
-- Version du PRP : V1
+- Version du PRP : V4
 
 ## 2. Responsabilite du module
-Enregistrer les reponses du questionnaire et lhorodatage.
+Enregistrer les reponses soumises depuis la page web tablette, les rattacher a la session active, et les rendre disponibles dans l'application officine.
 
 ## 3. Entrees attendues
-- Champ: Reponses structurees au questionnaire
-  - Type logique: donnees structurees
-  - Obligatoire: Oui
-  - Format/description: Reponses structurees au questionnaire
-- Champ: Horodatage
-  - Type logique: date-heure
-  - Obligatoire: Oui
-  - Format/description: Horodatage
-- Champ: Identifiant de session
+- Champ: Identifiant de session (`sid`)
   - Type logique: texte
   - Obligatoire: Oui
-  - Format/description: Identifiant de session
+  - Format/description: Identifiant de session cible
+- Champ: Reponses structurees au questionnaire (`responses`)
+  - Type logique: liste de donnees structurees
+  - Obligatoire: Oui
+  - Format/description: Liste de reponses comportant au minimum `question_id` et `value`
+- Champ: Horodatage de soumission (`submitted_at`)
+  - Type logique: date-heure
+  - Obligatoire: Oui
+  - Format/description: Horodatage de la soumission tablette
 
 ## 4. Sorties produites
 - Type de sortie :
-- Texte structure
+- JSON structure
 - Structure logique / format attendu :
-- Section  Synthese des reponses  du bilan
+- `session_id`: session cible
+- `submitted_at`: horodatage de soumission
+- `responses_count`: nombre de reponses enregistrees
+- `responses`: reponses enregistrees
+- Statut questionnaire UI: `Termine` (vert, 20pt, a droite du QR code)
+- Declenchement de la vue questions/reponses PC: `questionnaire_view_triggered=true`
 
 ## 5. Preconditions
-- La session n'est pas active.
-- Le questionnaire correspondant n'est pas disponible.
-- Les entrees principales ne sont pas disponibles.
+- La session est active.
+- Le questionnaire correspondant est disponible pour la session.
+- Les entrees principales sont disponibles.
 
 ## 6. Postconditions
-- Les donnees produites sont pretes a etre relues, modifiees et validees par le pharmacien.
-- Aucune persistance automatique de donnees apres validation finale de la session.
+- Les reponses sont persistees localement et liees a la session.
+- Les reponses sont disponibles pour les ecrans/modules de l'application officine.
+- Le statut questionnaire sur le PC est `Termine` (vert, 20pt, a droite du QR code).
+- L'affichage questions/reponses est declenche apres disponibilite du fichier de reponses.
+
+## 6.1 Contrat d'appel (logique)
+- Soumission des reponses questionnaire
+  - Methode: `POST`
+  - Entree attendue (JSON):
+    - `sid`: `<session_id>`
+    - `submitted_at`: `<ISO8601>`
+    - `responses`: liste de reponses
+  - Sortie attendue (JSON):
+    - `session_id`
+    - `submitted_at`
+    - `responses_count`
+    - `responses`
 
 ## 7. Erreurs et cas d'echec
-- Situation: Questionnaire incomplet ou interrompu.
+- Situation: Session inconnue ou inactive
+  - Comportement attendu: Blocage
+- Situation: Questionnaire incomplet ou interrompu
   - Comportement attendu: Signalement explicite sans extrapolation
 - Situation: Entree obligatoire absente
   - Comportement attendu: Blocage
+- Situation: Reponse sans `question_id`
+  - Comportement attendu: Blocage
 - Situation: Information contradictoire
   - Comportement attendu: Signalement sans arbitrage
-- Situation: Transcript vide ou trop court
-  - Comportement attendu: Sortie minimale sans extrapolation
 
 ## 8. Invariants
 - Aucune information ne doit etre inventee.
-- Aucune action ne peut etre proposee sans justification explicite issue du transcript.
-- Toute information absente ou ambigue doit etre signalee explicitement.
-- Aucune interpretation medicale, diagnostic ou prescription.
-- Le langage doit etre professionnel, clair pour le patient et adapte au contexte officinal.
-- Le pharmacien reste maitre du contenu final.
+- Les reponses sont enregistrees telles quelles, sans interpretation ni reecriture.
+- Le rattachement des reponses au `sid` est obligatoire.
+- Le stockage reste local et temporaire.
 
 ## 9. Hors perimetre
-- Diagnostic medical.
-- Prescription.
-- Decision clinique.
-- Interpretation medicale avancee.
+- Interpretation clinique ou generation du bilan.

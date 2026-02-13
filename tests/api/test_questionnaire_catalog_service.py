@@ -243,6 +243,24 @@ class TestValidateQuestionnaire:
         errors = catalog_service.validate_questionnaire(q)
         assert errors == []
 
+    def test_valid_sex_target_no_errors(self, catalog_service):
+        q = _minimal_questionnaire()
+        q["questions"][0]["sex_target"] = "F"
+        errors = catalog_service.validate_questionnaire(q)
+        assert errors == []
+
+    def test_invalid_sex_target(self, catalog_service):
+        q = _minimal_questionnaire()
+        q["questions"][0]["sex_target"] = "X"
+        errors = catalog_service.validate_questionnaire(q)
+        assert any("sex_target invalide" in e for e in errors)
+
+    def test_missing_sex_target_is_ok(self, catalog_service):
+        q = _minimal_questionnaire()
+        q["questions"][0].pop("sex_target", None)
+        errors = catalog_service.validate_questionnaire(q)
+        assert errors == []
+
 
 # ===================================================================
 # save_questionnaire
@@ -363,3 +381,7 @@ class TestNewQuestion:
     def test_required_defaults_to_true(self, catalog_service):
         q = catalog_service.new_question([])
         assert q["required"] is True
+
+    def test_sex_target_defaults_to_m(self, catalog_service):
+        q = catalog_service.new_question([])
+        assert q["sex_target"] == "M"

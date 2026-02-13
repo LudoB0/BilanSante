@@ -13,11 +13,15 @@
 - La session ne possede pas de duree predefinie et se cloture uniquement apres validation et generation finale des 4 documents attendus.
 - Regles structurantes (offline, local, responsabilite du pharmacien, tracabilite)
 - Local
-- Le PRD impose un fonctionnement local pour les donnees de session et les sorties (`output/`), avec deep-link locale pour le QR code.
+- Le PRD impose un fonctionnement local pour les donnees de session et les sorties (`output/`), avec URL web locale signee pour le QR code.
 - Responsabilite du pharmacien
 - Le pharmacien valide le transcript et le bilan final avant export.
 - Tracabilite
 - Toute action du plan doit comporter justification et preuve de passage transcript.
+- Synchronisation desktop/tablette
+- Les reponses du questionnaire doivent devenir disponibles dans l'application officine des leur enregistrement dans la session active.
+- Statut questionnaire visible operateur
+- Le statut questionnaire est affiche sur le PC, a droite du QR code (taille 20pt), avec progression `Disponible` (rouge) -> `En Cours` (orange) -> `Termine` (vert).
 - Offline
 - Le besoin de fonctionnement strictement hors reseau n'est pas explicitement tranche par le PRD (point ouvert).
 
@@ -30,9 +34,9 @@ Les responsabilites ci-dessous sont fonctionnelles (sans choix technologique) et
 2. Gestion du referentiel questionnaire
 - Gere la creation et l'edition des questionnaires par tranche d'age.
 3. Gestion de session et acces tablette
-- Ouvre une session unique, produit un QR code signe, autorise l'acces tablette uniquement pour la session cible.
+- Ouvre une session unique, puis produit et affiche le QR code signe dans le meme ecran apres clic sur "Demarrer l'entretien", initialise le statut `Disponible`, valide l'URL signee scannee sur la tablette, et passe le statut a `En Cours` au chargement du questionnaire.
 4. Collecte du questionnaire patient
-- Capture les reponses structurees et les rattache a la session.
+- Capture les reponses structurees soumises depuis la page web tablette, les rattache a la session, passe le statut a `Termine` quand le fichier reponses est disponible, et declenche la vue questions/reponses affichee sur le PC.
 5. Collecte de l'entretien officinal
 - Gere consentement audio, enregistrement audio et notes textuelles.
 6. Transcription et validation de la source de verite
@@ -68,7 +72,7 @@ Les modules ci-dessous couvrent chacun un ensemble de PRP. Chaque PRP est affect
 
 ### Module C - SessionAndTabletAccess
 - Role
-- Initialisation session (affichage contexte pharmacie, selection tranche d'age parmi questionnaires non vides, creation session dans `data/sessions/`), generation QR signe, ouverture questionnaire sur tablette.
+- Initialisation session (affichage contexte pharmacie, selection tranche d'age parmi questionnaires non vides, creation session dans `data/sessions/`), generation QR signe dans le meme ecran juste apres le clic de demarrage, puis ouverture du questionnaire sur page web tablette.
 - PRP couverts
 - `PRP_InitializeInterviewSession.md`
 - `PRP_GenerateSessionQRCode.md`
@@ -77,6 +81,8 @@ Les modules ci-dessous couvrent chacun un ensemble de PRP. Chaque PRP est affect
 - Lit les donnees de parametrage pharmacie depuis `config/settings.json` et `config/img/logo.png` (lecture seule, ne modifie jamais `config/`).
 - Lit la liste des questionnaires non vides depuis `config/questionnaires/` pour filtrer les tranches d'age proposees.
 - Stocke les sessions dans `data/sessions/` (donnees temporaires purgees en fin d'etape 9).
+- Expose un point d'entree web questionnaire securise par `v`, `sid`, `t`, `sig`.
+- Gere le statut UI questionnaire `Disponible` puis `En Cours` (a droite du QR code, taille 20pt).
 - Expose les informations de session aux modules de collecte.
 - N'assemble pas le bilan.
 
@@ -87,6 +93,9 @@ Les modules ci-dessous couvrent chacun un ensemble de PRP. Chaque PRP est affect
 - `PRP_CaptureQuestionnaireResponses.md`
 - Frontieres avec les autres modules
 - Recoit session + questionnaire actif.
+- Recoit la soumission des reponses depuis le navigateur tablette (session cible).
+- Persiste les reponses dans les donnees de session et les expose a l'application officine.
+- Met a jour le statut UI questionnaire a `Termine` et declenche la construction de la vue questions/reponses operateur.
 - Produit uniquement des donnees de questionnaire pour les modules de construction du bilan.
 
 ### Module E - InterviewCapture
@@ -116,7 +125,7 @@ Les modules ci-dessous couvrent chacun un ensemble de PRP. Chaque PRP est affect
 
 ### Module G - BilanAssembly
 - Role
-- Production des sections de bilan et du plan d'actions trace.
+- Production des sections de bilan et du plan d'actions trace, ainsi que de la vue questionnaire operateur pre-entretien.
 - PRP couverts
 - `PRP_BuildInterviewContextSection.md`
 - `PRP_BuildQuestionnaireSummarySection.md`
@@ -125,6 +134,7 @@ Les modules ci-dessous couvrent chacun un ensemble de PRP. Chaque PRP est affect
 - `PRP_AssembleBilanForValidation.md`
 - Frontieres avec les autres modules
 - Recoit transcript valide (source principale), questionnaire (contexte), metadonnees session, consentement.
+- Recoit aussi les reponses questionnaire persistees pour generer `data/session/QuestionnaireComplet_[Num Session].md`, puis afficher la vue operateur questions/reponses a la suite du QR code.
 - Produit un objet de bilan pret pour validation finale.
 
 ### Module H - FinalValidationAndExport
@@ -221,13 +231,17 @@ Types de donnees manipulees (PRD section 4 + sorties section 5):
 - ID session, date/heure creation, date validation entretien, duree approximative, mode recueil.
 3. Donnees questionnaire
 - Tranche d'age, reponses structurees (question id, type, valeur, horodatage).
-4. Donnees entretien
+4. Statut questionnaire UI
+- Etat affiche sur PC a droite du QR code (taille 20pt): `Disponible` (rouge), `En Cours` (orange), `Termine` (vert).
+5. Donnees entretien
 - Consentement audio (oui/non + horodatage), enregistrement audio (si consentement), notes textuelles.
-5. Donnees transcript
+6. Donnees transcript
 - Transcript textuel (eventuellement segmente), issu de la transcription audio ou de la conversion des notes textuelles, puis transcript valide (source de verite).
-6. Donnees de bilan assemble
+7. Donnees de vue questionnaire operateur pre-entretien
+- Fichier markdown `data/session/QuestionnaireComplet_[Num Session].md` (questions + reponses associees), notes markdown par question, et zone finale `Rapport du pharmacien`.
+8. Donnees de bilan assemble
 - Sections bilan (contexte, synthese des reponses, points de vigilance), plan d'actions justifie et trace.
-7. Donnees de sortie
+9. Donnees de sortie
 - `output/BDS_<numero_session>.docx`
 - `output/PAC_<numero_session>.docx`
 - `output/BDS_<numero_session>.pdf`
@@ -236,13 +250,14 @@ Types de donnees manipulees (PRD section 4 + sorties section 5):
 
 Cycle de vie:
 1. Creation session (etape 3), rattachement des donnees questionnaire et entretien.
-2. Validation transcript (etape 7), puis generation bilan/plan (etape 8).
-3. Validation finale + generation DOCX/PDF (etape 9).
-4. Cloture session et purge globale des donnees de session (questionnaire, transcript, metadonnees, audio) en fin d'etape 9, uniquement si les 4 documents attendus sont crees. En cas d'echec d'un document, la session reste active pour relance.
+2. Capture des reponses questionnaire (etape 5), generation `data/session/QuestionnaireComplet_[Num Session].md` puis affichage questions/reponses operateur pre-entretien.
+3. Validation transcript (etape 7), puis generation bilan/plan (etape 8).
+4. Validation finale + generation DOCX/PDF (etape 9).
+5. Cloture session et purge globale des donnees de session (questionnaire, transcript, metadonnees, audio) en fin d'etape 9, uniquement si les 4 documents attendus sont crees. En cas d'echec d'un document, la session reste active pour relance.
 
 Regles de persistance et de suppression:
 - Donnees de parametrage: persistance permanente dans `config/`, non liee aux sessions.
-- Donnees de session (types 2 a 6): persistance locale et temporaire uniquement, dans `data/`.
+- Donnees de session (types 2 a 8): persistance locale et temporaire uniquement, dans `data/`.
 - Aucune duree de retention par defaut.
 - Suppression conditionnee a la fin de l'etape 9 (validation + generation des 4 documents attendus).
 - Si un document attendu n'est pas cree, ce document est marque "non cree" et la session reste active pour relance. Pas de purge tant que les 4 documents ne sont pas generes.
@@ -258,10 +273,16 @@ Liens avec les PRP:
 1. Flux session, QR code et questionnaire
 - Parametrage applique.
 - Selection tranche d'age.
-- Creation session.
-- Generation QR signe.
-- Ouverture tablette sur la session.
-- Saisie des reponses patient.
+- Clic pharmacien sur "Demarrer l'entretien" et creation session.
+- Generation QR signe dans le meme ecran.
+- Affichage statut `Disponible` (rouge, 20pt) a droite du QR code.
+- Scan du QR code depuis la tablette.
+- Validation des parametres signes (`v`, `sid`, `t`, `sig`) puis ouverture de la page web questionnaire sur la session.
+- Passage statut `En Cours` (orange, 20pt) quand le questionnaire est charge sur tablette.
+- Saisie des reponses patient puis soumission vers le module de capture.
+- Persistance des reponses dans la session locale et disponibilite immediate pour l'application officine.
+- Passage statut `Termine` (vert, 20pt) quand le fichier reponses est disponible.
+- Generation de `data/session/QuestionnaireComplet_[Num Session].md` et affichage de la vue questions/reponses sur le PC a la suite du QR code, avec zones markdown pharmacien.
 
 2. Flux entretien officinal
 - Capture consentement audio.
@@ -304,9 +325,10 @@ Lister uniquement les decisions deduites du PRD.
 
 3. QR payload signe pour acces tablette
 - Justification
-- PRD: format `bsp://session?v=1&sid=<session_id>&t=<token>&sig=<signature>` avec signature/HMAC anti-falsification.
+- PRD: format `<questionnaire_base_url>?v=1&sid=<session_id>&t=<token>&sig=<signature>` avec signature/HMAC anti-falsification.
 - Consequences connues
 - Validation obligatoire de `v`, `sid`, `t`, `sig` avant acces questionnaire.
+- La politique d'expiration temporelle du token/lien doit etre definie explicitement.
 
 4. Generation documentaire locale en sortie
 - Justification
@@ -328,15 +350,35 @@ Lister uniquement les decisions deduites du PRD.
 - La purge ne peut pas etre declenchee au stade validation transcript (etape 7).
 - En cas d'echec d'un document, la session reste active pour permettre une relance. La purge n'intervient que lorsque les 4 documents sont generes.
 
+7. Synchronisation reponses tablette vers application officine
+- Justification
+- Le flux module C/D impose que les reponses saisies sur tablette soient visibles dans l'application officine pour la suite du parcours.
+- Consequences connues
+- Un mecanisme de synchronisation doit etre prevu (polling court ou canal temps reel).
+- La coherence de lecture/ecriture sur la session active doit etre garantie.
+
+8. Vue questionnaire operateur pre-entretien
+- Justification
+- Le flux operateur impose un affichage questions/reponses immediat apres reception des reponses patient pour guider l'entretien.
+- Consequences connues
+- Construction obligatoire du fichier `data/session/QuestionnaireComplet_[Num Session].md` avant affichage.
+- Les zones de saisie pharmacien doivent accepter du markdown (par question + `Rapport du pharmacien`).
+
 ## 8. Points ouverts
 1. Mode exact de persistance locale
 - Le PRD impose "local et temporaire" mais ne specifie pas le support (fichiers, base embarquee, autre).
 
-2. Gestion de cle/signature pour `sig` (QR)
-- Le PRD impose signature/HMAC mais ne specifie pas le cycle de vie de la cle de signature.
+2. Gestion de cle/signature et expiration pour le lien QR
+- Le PRD impose signature/HMAC mais ne specifie pas le cycle de vie de la cle de signature ni la duree de validite du lien.
 
 3. Niveau de detail du statut d'echec export
 - Le PRD impose l'etat "non cree" mais ne specifie pas le format de restitution (journal, champ de session, autre).
 
 4. Exigence reseau operationnelle
-- Le PRD impose un deep-link local et une cle API fournisseur IA, sans preciser si un mode strictement offline doit etre garanti pour toutes les etapes.
+- Le PRD impose une URL web locale pour le questionnaire tablette et une cle API fournisseur IA, sans preciser si un mode strictement offline doit etre garanti pour toutes les etapes.
+
+5. Mode de synchronisation desktop/tablette
+- Le mode exact de synchronisation des reponses vers l'application officine (polling vs canal temps reel) n'est pas fixe contractuellement.
+
+6. Format de sauvegarde des notes markdown pharmacien
+- Le format exact de persistance des notes markdown (par question et `Rapport du pharmacien`) reste a figer contractuellement.

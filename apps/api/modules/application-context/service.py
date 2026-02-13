@@ -37,6 +37,7 @@ OPTIONAL_TEXT_FIELDS: tuple[str, ...] = (
     "facebook",
     "x",
     "linkedin",
+    "modele_ia",
 )
 
 

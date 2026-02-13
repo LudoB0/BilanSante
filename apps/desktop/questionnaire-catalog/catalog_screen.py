@@ -59,6 +59,14 @@ _QUESTION_TYPES_LABELS = {
 _TYPE_VALUES = list(_QUESTION_TYPES_LABELS.keys())
 _TYPE_DISPLAY = list(_QUESTION_TYPES_LABELS.values())
 
+_SEX_TARGET_LABELS = {
+    "M": "Mixte",
+    "H": "Homme",
+    "F": "Femme",
+}
+_SEX_TARGET_VALUES = list(_SEX_TARGET_LABELS.keys())
+_SEX_TARGET_DISPLAY = list(_SEX_TARGET_LABELS.values())
+
 _STATUS_TEXT = {
     "initial": "Selectionnez une tranche d'age",
     "creation": "Nouveau questionnaire",
@@ -276,9 +284,23 @@ class CatalogScreen(ctk.CTkFrame):
         type_menu.set(_TYPE_DISPLAY[display_idx])
         type_menu.grid(row=1, column=1, sticky="w", padx=8, pady=2)
 
+        # Sex target dropdown
+        sex_label = ctk.CTkLabel(card, text="Cible sexe", anchor="w")
+        sex_label.grid(row=2, column=0, sticky="w", padx=8, pady=2)
+
+        current_sex = question.get("sex_target", "M")
+        sex_idx = _SEX_TARGET_VALUES.index(current_sex) if current_sex in _SEX_TARGET_VALUES else 0
+        sex_menu = ctk.CTkOptionMenu(
+            card,
+            values=_SEX_TARGET_DISPLAY,
+            command=lambda val, idx=index: self._on_sex_target_change(idx, val),
+        )
+        sex_menu.set(_SEX_TARGET_DISPLAY[sex_idx])
+        sex_menu.grid(row=2, column=1, sticky="w", padx=8, pady=2)
+
         # Label entry
         label_label = ctk.CTkLabel(card, text="Libelle", anchor="w")
-        label_label.grid(row=2, column=0, sticky="w", padx=8, pady=2)
+        label_label.grid(row=3, column=0, sticky="w", padx=8, pady=2)
 
         label_entry = ctk.CTkEntry(card, width=400)
         label_entry.insert(0, question.get("label", ""))
@@ -288,9 +310,9 @@ class CatalogScreen(ctk.CTkFrame):
                 idx, entry.get()
             ),
         )
-        label_entry.grid(row=2, column=1, columnspan=2, sticky="ew", padx=8, pady=2)
+        label_entry.grid(row=3, column=1, columnspan=2, sticky="ew", padx=8, pady=2)
 
-        row = 3
+        row = 4
 
         # Conditional: options for choice types
         if current_type in ("single_choice", "multiple_choice"):
@@ -429,6 +451,12 @@ class CatalogScreen(ctk.CTkFrame):
     def _on_move_question(self, from_idx: int, to_idx: int):
         self._state = _ui.move_question(self._state, from_idx, to_idx)
         self._rebuild_question_editor()
+        self._update_status()
+
+    def _on_sex_target_change(self, index: int, display_value: str):
+        idx = _SEX_TARGET_DISPLAY.index(display_value) if display_value in _SEX_TARGET_DISPLAY else 0
+        value = _SEX_TARGET_VALUES[idx]
+        self._state = _ui.update_question(self._state, index, "sex_target", value)
         self._update_status()
 
     def _on_scale_change(self, q_index: int, field: str, raw_value: str):

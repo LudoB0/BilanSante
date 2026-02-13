@@ -53,13 +53,13 @@ Parametrer lapplication pour une pharmacie (identite, habillage, fournisseur IA 
   - Obligatoire: Non
   - Format/description: Identifiant ou URL du compte LinkedIn.
 - Champ: Choix du fournisseur IA
-  - Type logique: non specifie
+  - Type logique: enum
   - Obligatoire: Oui
-  - Format/description: Choix du fournisseur IA
+  - Format/description: `OpenIA` ou `Anthropic` ou `Mistral`
 - Champ: Cle API obligatoire
-  - Type logique: non specifie
+  - Type logique: texte
   - Obligatoire: Oui
-  - Format/description: Cle API obligatoire
+  - Format/description: Cle API du fournisseur IA selectionne
 
 ## 4. Sorties produites
 - Type de sortie :
@@ -83,6 +83,8 @@ Parametrer lapplication pour une pharmacie (identite, habillage, fournisseur IA 
 ## 7. Erreurs et cas d'echec
 - Situation: Cle API manquante ou invalide.
   - Comportement attendu: Signalement explicite sans extrapolation
+- Situation: Fournisseur IA hors liste autorisee
+  - Comportement attendu: Blocage
 - Situation: Entree obligatoire absente
   - Comportement attendu: Blocage
 - Situation: Information contradictoire
@@ -90,6 +92,7 @@ Parametrer lapplication pour une pharmacie (identite, habillage, fournisseur IA 
 ## 8. Invariants
 - Aucune donnee patient ne doit etre manipulee.
 - La cle API est obligatoire pour valider le parametrage.
+- Le fournisseur IA est obligatoirement `OpenIA`, `Anthropic` ou `Mistral`.
 - Le parametrage est modifiable a tout moment.
 - Les donnees de parametrage sont persistantes et independantes des sessions.
 - Le pharmacien reste maitre du contenu du parametrage.

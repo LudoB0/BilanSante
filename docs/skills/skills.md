@@ -7,7 +7,7 @@ Ce document liste les skills nécessaires, strictement dérivés du PRD. Chaque 
 - **Entrées (PRD §3 – Étape 1)**:
   - Identité de la pharmacie (logo, coordonnées, en-tête/pied de page)
   - Informations de contact optionnelles (site web, réseaux sociaux : Instagram, Facebook, X, LinkedIn)
-  - Choix du fournisseur IA
+  - Choix du fournisseur IA (`OpenIA`, `Anthropic`, `Mistral`)
   - Clé API obligatoire
 - **Sorties (PRD §3 – Étape 1)**:
   - Données de paramétrage applicatif enregistrées (identité pharmacie, fournisseur IA, clé API)
@@ -53,49 +53,70 @@ Ce document liste les skills nécessaires, strictement dérivés du PRD. Chaque 
   - Session non créée (ID absent) ou dupliquée.
 
 ## 4) GenerateSessionQRCode
-- **Intention**: Générer le QRCode de session pour accéder au questionnaire sur tablette.
+- **Intention**: Générer et afficher le QRCode de session dans la même interface, juste après le clic sur `Démarrer l'entretien`, puis afficher le statut `Disponible` (rouge, 20pt) à droite du QR code.
 - **Entrées (PRD §3 – Étape 4 / §4.4 / §4.6)**:
-  - Identifiant de session
-  - Version du format (`v`)
-  - Token opaque non devinable (`t`)
-  - Signature/HMAC anti-falsification (`sig`)
+  - Identifiant de session active (créée par `InitializeInterviewSession`)
+  - URL de base auto-détectée via `get_local_ip()` (adresse IP LAN du poste, pas `localhost`)
+  - Version du format (`v=1`)
+  - Token opaque généré via `secrets.token_urlsafe(32)`
+  - Signature HMAC-SHA256 calculée sur `v=1&sid=<session_id>&t=<token>` avec secret stocké dans `config/qr_secret.key`
 - **Sorties (PRD §4.6)**:
-  - Payload QRCode signé : `bsp://session?v=1&sid=<session_id>&t=<token>&sig=<signature>`
+  - Payload QRCode signé : `http://<ip_locale>:5000/questionnaire?v=1&sid=<session_id>&t=<token>&sig=<signature>`
+  - QRCode affiché dans le même écran `session-and-tablet-access`
+  - Serveur Flask démarré en thread daemon sur `0.0.0.0:5000`
+  - Statut questionnaire UI : `Disponible` (rouge, 20pt, à droite du QR code)
 - **Règles/contraintes (PRD §6)**:
   - Questionnaire isolé par session.
-  - Le payload QRCode doit être signé (HMAC/signature) pour éviter la falsification.
+  - Le payload QRCode est signé par HMAC-SHA256 pour éviter la falsification.
+  - Le module démarre uniquement après création effective de la session.
+  - L'URL utilise l'IP LAN locale (jamais `localhost`) pour être accessible depuis la tablette.
 - **Erreurs/edge cases**:
+  - Clic `Démarrer l'entretien` non effectué (session absente).
   - QRCode invalide ou session inconnue.
-  - Signature invalide.
-  - Token opaque absent ou invalide.
+  - Signature HMAC-SHA256 invalide.
+  - Détection IP échouée : fallback sur `127.0.0.1`.
+  - Serveur déjà démarré : pas de second démarrage (idempotent).
 
 ## 5) ServeQuestionnaireOnTablet
-- **Intention**: Charger automatiquement le bon questionnaire sur la tablette via le QRCode.
+- **Intention**: Servir le questionnaire en HTML inline responsive sur la tablette via un serveur Flask (`0.0.0.0:5000`, thread daemon) démarré par `GenerateSessionQRCode`.
 - **Entrées (PRD §3 – Étape 4 / §4.1-4.2 / §4.6)**:
-  - Identifiant de session
-  - Questionnaire associé à la tranche d’âge
-  - Payload QRCode (`v`, `sid`, `t`, `sig`)
+  - `GET /questionnaire?v=1&sid=<session_id>&t=<token>&sig=<signature>` (scan QR code)
+  - `POST /questionnaire/submit` avec JSON `{sid, submitted_at, responses: [{question_id, type, value}]}`
 - **Sorties (PRD §3 – Étape 4)**:
-  - Questionnaire chargé et accessible sur la tablette pour la session cible
+  - `GET` : page HTML inline responsive avec formulaire questionnaire (5 types : boolean, single_choice, multiple_choice, short_text, scale) ou page d'erreur (403/404)
+  - `POST` : JSON `{session_id, submitted_at, responses_count, responses}` (200) ou `{error}` (400)
+  - Statut questionnaire UI : `En Cours` (orange, 20pt, à droite du QR code) dès chargement du questionnaire tablette
 - **Règles/contraintes (PRD §6)**:
   - Accès sans compte ; isolation par session.
-  - Chargement autorisé uniquement si le payload respecte `bsp://session?v=1&sid=<session_id>&t=<token>&sig=<signature>`.
+  - Validation HMAC-SHA256 de la signature avant tout chargement.
+  - La soumission est déléguée à `CaptureQuestionnaireResponses.save_responses()`.
+  - Le serveur écoute sur `0.0.0.0` (toutes les interfaces) pour être accessible depuis la tablette.
 - **Erreurs/edge cases**:
-  - Questionnaire non disponible pour la tranche d’âge.
-  - Payload invalide (version, token ou signature).
+  - Questionnaire non disponible pour la tranche d'âge (404).
+  - Payload invalide : version, token ou signature HMAC-SHA256 (403).
+  - Session inconnue ou inactive (403).
+  - JSON invalide ou réponses mal structurées (400).
 
 ## 6) CaptureQuestionnaireResponses
-- **Intention**: Enregistrer les réponses du questionnaire et l’horodatage.
+- **Intention**: Enregistrer les réponses du questionnaire soumises depuis la tablette, mettre le statut à `Terminé` (vert, 20pt), puis déclencher l'affichage questions/réponses opérateur.
 - **Entrées (PRD §4.2 / §4.4)**:
-  - Réponses structurées au questionnaire
-  - Horodatage
-  - Identifiant de session
+  - Identifiant de session (`sid`)
+  - Réponses structurées : liste de `{question_id, type, value}`
+  - Horodatage de soumission (`submitted_at`, auto-généré si absent)
 - **Sorties (PRD §4.2 / §3 – Étape 5)**:
-  - Réponses structurées enregistrées et liées à la session
+  - Record JSON persisté : `{session_id, submitted_at, responses_count, responses}`
+  - Fichier : `data/sessions/<sid>_responses.json`
+  - Lecture via `load_responses(sid)` (retourne `None` si absent ou corrompu)
+  - Statut questionnaire UI : `Terminé` (vert, 20pt, à droite du QR code)
+  - Déclenchement de `BuildQuestionnaireSummarySection` (vue questions/réponses sur PC)
 - **Règles/contraintes (PRD §6)**:
-  - Les réponses sont un support contextuel sans valeur décisionnelle.
+  - Les réponses sont stockées telles quelles, sans interprétation.
+  - Validation : chaque réponse doit contenir `question_id` et `value`.
+  - La session doit exister et être active.
   - Données stockées localement et temporairement.
 - **Erreurs/edge cases**:
+  - Session inconnue ou inactive (`ValueError`).
+  - Réponses mal structurées (`ValueError`).
   - Questionnaire incomplet ou interrompu.
 
 ## 7) CaptureConsentStatus
@@ -124,16 +145,23 @@ Ce document liste les skills nécessaires, strictement dérivés du PRD. Chaque 
   - Tentative d’enregistrement sans consentement.
 
 ## 9) CaptureInterviewTextNotes
-- **Intention**: Saisir des notes textuelles lors de l’entretien (texte seul ou complément audio).
+- **Intention**: Capturer les saisies pharmacien au clic `Demander a l'IA`, régénérer `QuestionnaireComplet_[xxxxxx].md`, puis ouvrir l'écran co-production et déclencher `IdentifyVigilancePoints`.
 - **Entrées (PRD §3 – Étape 6 / §4.3)**:
-  - Notes textuelles du pharmacien
   - Identifiant de session
+  - Saisies pharmacien (notes par question, tension optionnelle, rapport)
+  - Fournisseur IA configuré (`OpenIA`, `Anthropic`, `Mistral`)
+  - Clé API du fournisseur sélectionné
+  - Fichier de configuration `config/prompts/promptvigilance.txt`
 - **Sorties (PRD §4.3-4.4)**:
-  - Notes textuelles et métadonnées d’entretien (mode de recueil texte ou mixte)
+  - `data/sessions/QuestionnaireComplet_[xxxxxx].md` mis à jour
+  - Remplacement de l'écran courant par la fenêtre co-production
+  - Déclenchement du skill `IdentifyVigilancePoints`
 - **Règles/contraintes (PRD §6)**:
-  - Aucune réécriture automatique.
+  - Aucune réécriture automatique des saisies pharmacien.
+  - Le déclenchement IA intervient après création du questionnaire complet.
 - **Erreurs/edge cases**:
-  - Notes illisibles ou incomplètes.
+  - Fichier questionnaire complet absent.
+  - Configuration IA absente (fournisseur, clé API, prompt).
 
 ## 10) ConvertNotesToTranscript
 - **Intention**: Convertir les notes textuelles du pharmacien en transcript structuré lorsque l'entretien est en mode texte seul (sans audio).
@@ -188,30 +216,42 @@ Ce document liste les skills nécessaires, strictement dérivés du PRD. Chaque 
   - Informations contextuelles non exprimées.
 
 ## 14) BuildQuestionnaireSummarySection
-- **Intention**: Synthétiser les réponses du questionnaire en respectant la hiérarchie des sources.
-- **Entrées (PRD §4.2-4.3)**:
-  - Réponses structurées au questionnaire
-  - Transcript validé
-- **Sorties (PRD §5.1)**:
-  - Section « Synthèse des réponses » du bilan
+- **Intention**: Afficher systématiquement la liste questions/réponses du questionnaire sur le PC, avec zones de texte markdown pharmacien par question et zone finale `Rapport du pharmacien`.
+- **Entrées (PRD §4.2 / §4.8)**:
+  - Fichier réponses session : `data/sessions/<sid>_responses.json`
+  - Questionnaire source (questions)
+- **Sorties (PRD §5.4)**:
+  - Fichier markdown `data/session/QuestionnaireComplet_[Num Session].md` (questions + réponses)
+  - Vue opérateur questionnaire affichée sur l'écran PC, à la suite du QR code
+  - Zone markdown à droite de chaque question
+  - Zone markdown finale `Rapport du pharmacien`
+  - Bouton `Envoyer à l'IA` pour déclencher la génération du bilan et du plan d'action
 - **Règles/contraintes (PRD §6)**:
-  - Le questionnaire est un support contextuel, jamais décisionnel.
-  - Toute information doit rester compatible avec le transcript.
-  - Phrases courtes et vocabulaire compréhensible par le patient.
+  - La vue est basée uniquement sur les questions/réponses de session.
+  - Aucune information inventée, aucun diagnostic, aucune décision clinique.
+  - Le markdown `QuestionnaireComplet_[Num Session].md` est généré avant affichage.
+  - Le bouton `Envoyer à l'IA` délègue aux skills `AssembleBilanForValidation` / `GeneratePreventionActions`.
 - **Erreurs/edge cases**:
-  - Contradiction questionnaire / transcript.
+  - Fichier réponses absent.
+  - Questionnaire source absent.
 
 ## 15) IdentifyVigilancePoints
-- **Intention**: Identifier les points de vigilance évoqués lors de l’entretien.
+- **Intention**: Après création de `QuestionnaireComplet_[xxxxxx].md`, appeler le fournisseur IA choisi pour produire une synthèse vigilance concise, l'afficher en co-production, puis la stocker.
 - **Entrées (PRD §4.3)**:
-  - Transcript validé
+  - `data/sessions/QuestionnaireComplet_[xxxxxx].md`
+  - Fournisseur IA (`OpenIA`, `Anthropic`, `Mistral`)
+  - Clé API du fournisseur sélectionné
+  - Fichier de configuration `config/prompts/promptvigilance.txt`
 - **Sorties (PRD §5.1)**:
-  - Section « Points de vigilance identifiés » du bilan
+  - Affichage du résultat du prompt dans la fenêtre co-production
+  - Fichier `data/sessions/Vigilance_<short_id>.md` (section vigilance + section 3 points pharmacien)
 - **Règles/contraintes (PRD §6)**:
-  - Aucun point sans trace explicite.
-  - Phrases courtes et vocabulaire compréhensible par le patient.
+  - Envoi du questionnaire complet + prompt de configuration avant la requête.
+  - Résultat limité aux points de vigilance, sans diagnostic ni prescription.
 - **Erreurs/edge cases**:
-  - Aucun point de vigilance mentionné.
+  - Fournisseur IA non supporté.
+  - Clé API absente/invalide.
+  - Fichier `config/prompts/promptvigilance.txt` absent ou vide.
 
 ## 16) GeneratePreventionActions
 - **Intention**: Générer le plan d’actions avec justification traçable.

@@ -49,6 +49,9 @@ _svc = _load_module(
 _SECTION_PAD = {"padx": 16, "pady": (16, 4)}
 _FIELD_PAD = {"padx": 24, "pady": 2}
 _PROVIDERS = ("openai", "anthropic", "mistral")
+_MODEL_TIERS = ("Eco", "Performant")
+_TIER_TO_VALUE = {"Eco": "eco", "Performant": "performant"}
+_VALUE_TO_TIER = {"eco": "Eco", "performant": "Performant"}
 
 _LABELS = {
     "nom_pharmacie": "Nom de la pharmacie *",
@@ -63,6 +66,7 @@ _LABELS = {
     "linkedin": "LinkedIn",
     "fournisseur_ia": "Fournisseur IA *",
     "cle_api": "Cle API *",
+    "modele_ia": "Modele IA",
 }
 
 _STATUS_TEXT = {
@@ -245,6 +249,21 @@ class ConfigScreen(ctk.CTkFrame):
         self._error_labels["cle_api"] = err
         row += 1
 
+        # Model tier selector
+        lbl = ctk.CTkLabel(parent, text=_LABELS["modele_ia"], anchor="w")
+        lbl.grid(row=row, column=0, sticky="w", **_FIELD_PAD)
+        row += 1
+
+        seg = ctk.CTkSegmentedButton(
+            parent,
+            values=list(_MODEL_TIERS),
+            command=self._on_tier_change,
+        )
+        seg.set("Eco")
+        seg.grid(row=row, column=0, sticky="w", **_FIELD_PAD)
+        self._tier_button = seg
+        row += 1
+
         return row
 
     # --- Helpers ---
@@ -286,6 +305,11 @@ class ConfigScreen(ctk.CTkFrame):
 
     def _on_dropdown_change(self, field: str, value: str):
         self._state = _ui.update_ui_state(self._state, field, value)
+        self._update_status()
+
+    def _on_tier_change(self, value: str):
+        stored = _TIER_TO_VALUE.get(value, "eco")
+        self._state = _ui.update_ui_state(self._state, "modele_ia", stored)
         self._update_status()
 
     def _on_logo_select(self):
@@ -381,6 +405,11 @@ class ConfigScreen(ctk.CTkFrame):
         if logo_path and Path(logo_path).is_file():
             self._logo_source = logo_path
             self._show_logo_preview(logo_path)
+
+        # Model tier
+        modele = self._state.get("modele_ia", "")
+        tier_display = _VALUE_TO_TIER.get(modele, "Eco")
+        self._tier_button.set(tier_display)
 
         self._update_status()
 

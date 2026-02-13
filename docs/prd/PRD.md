@@ -99,18 +99,22 @@ Aucune donnée nominative n'est requise pour créer une session.
 
 ### Étape 4 — Mise à disposition du questionnaire sur tablette
 
-- L’application génère un **QRCode de session**.
-- Le payload du QRCode est un lien local/deep-link signé au format :
-  `bsp://session?v=1&sid=<session_id>&t=<token>&sig=<signature>`.
+- Après clic sur **"Démarrer l'entretien"** (Étape 3), l’application génère un **QRCode de session** dans la même interface.
+- Le payload du QRCode est une URL web locale signée au format :
+  `<questionnaire_base_url>?v=1&sid=<session_id>&t=<token>&sig=<signature>`.
 - Champs obligatoires du payload :
   - `v` : version du format
   - `sid` : identifiant de session (UUID)
   - `t` : token opaque non devinable
   - `sig` : signature/HMAC anti-falsification
     
-- Le patient scanne le QRCode sur la tablette dédiée.
+- Le pharmacien scanne le QRCode avec la tablette dédiée.
     
-- La tablette charge automatiquement le **bon questionnaire**, associé à la session en cours.
+- La tablette ouvre automatiquement la page web du **bon questionnaire**, associé à la session en cours.
+- Le patient remplit ensuite les questions sur cette page web.
+- Sur l'écran PC (à droite du QR code), le statut questionnaire est affiché en taille 20 points :
+  - `Disponible` (rouge) dès génération du QR code,
+  - `En Cours` (orange) dès que le questionnaire est chargé sur la tablette.
     
 
 Le questionnaire est accessible sans compte et isolé par session.
@@ -122,15 +126,21 @@ Le questionnaire est accessible sans compte et isolé par session.
 - Le patient complète le questionnaire de manière autonome (ou accompagné si nécessaire).
     
 - Les réponses sont enregistrées localement et liées à l’ID de session.
-    
-- Aucune analyse ni interprétation n’est réalisée à ce stade.
+- Dès que le fichier de réponses est disponible, le statut questionnaire sur le PC passe à `Terminé` (vert, 20 points, à droite du QR code).
+- À ce moment, l'application génère un fichier markdown `data/session/QuestionnaireComplet_[Num Session].md` (questions + réponses associées).
+- La liste des questions/réponses est affichée sur l'écran PC, à la suite du QR code, avec :
+  - une zone de texte markdown à droite de chaque question (optionnelle),
+  - une zone de texte markdown finale intitulée `Rapport du pharmacien`.
+- Un bouton **« Envoyer à l'IA »** est affiché en dessous de la zone rapport, permettant au pharmacien de lancer la génération du bilan et du plan d'action.
+
+- Aucune analyse clinique ni interprétation médicale n'est réalisée à ce stade.
     
 
 ---
 
 ### Étape 6 — Entretien officinal guidé
 
-- Le pharmacien conduit l’entretien en s’appuyant sur les réponses du questionnaire.
+- Le pharmacien conduit l’entretien en s’appuyant sur les réponses du questionnaire et sur l’affichage questions/réponses avec ses notes markdown sur le PC.
     
 - L’entretien peut être :
     
@@ -298,8 +308,8 @@ Les données d’entrée correspondent exclusivement aux informations collectée
 
 - **Description** : charge utile transportée dans le QRCode de session.
     
-- **Format** : chaîne de caractères (URL locale ou deep-link) :
-  `bsp://session?v=1&sid=<session_id>&t=<token>&sig=<signature>`.
+- **Format** : chaîne de caractères (URL web locale signée) :
+  `<questionnaire_base_url>?v=1&sid=<session_id>&t=<token>&sig=<signature>`.
     
 - **Champs** :
     
@@ -310,6 +320,36 @@ Les données d’entrée correspondent exclusivement aux informations collectée
     - `t` : token opaque non devinable,
         
     - `sig` : signature/HMAC anti-falsification.
+
+### 4.7 Statut questionnaire (UI PC)
+
+- **Description** : état visuel de progression du questionnaire affiché à droite du QR code.
+    
+- **Format** : énumération métier avec contraintes d'affichage.
+    
+    - `Disponible` : couleur rouge, taille 20 points (QR code généré),
+        
+    - `En Cours` : couleur orange, taille 20 points (questionnaire chargé sur tablette),
+        
+    - `Terminé` : couleur verte, taille 20 points (fichier réponses disponible).
+
+### 4.8 Fichier markdown questionnaire complet
+
+- **Description** : fichier de travail local contenant la liste complète questions/réponses du questionnaire de session.
+    
+- **Format** : fichier markdown `data/session/QuestionnaireComplet_[Num Session].md`.
+    
+- **Contenu minimal** :
+    
+    - identifiant de session,
+        
+    - liste complète des questions,
+        
+    - réponse associée pour chaque question,
+        
+    - emplacement de note markdown pharmacien par question,
+        
+    - section markdown finale `Rapport du pharmacien`.
         
 
 Aucune donnée externe, aucun historique patient et aucune supposition ne sont utilisés par le système.
@@ -394,6 +434,14 @@ Aucune donnée externe, aucun historique patient et aucune supposition ne sont u
 Les documents sont générés uniquement après validation explicite du pharmacien.
 
 En cas d’échec de génération d’un document attendu, ce document est non créé.
+
+### 5.4 Vue opérateur questionnaire (pré-entretien)
+
+- **Description** : affichage lisible questions/réponses sur le PC après réception des réponses patient.
+    
+- **Source** : dérivée directement du fichier `data/session/QuestionnaireComplet_[Num Session].md` (sans appel API IA).
+    
+- **Usage** : support de conduite d'entretien en face à face, avec notes markdown optionnelles par question et zone `Rapport du pharmacien`.
 
 ---
 
